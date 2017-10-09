@@ -2,8 +2,10 @@ import sys
 import unittest
 import bpconfig.properties as props
 from itertools import product
+from ddt import ddt, data, file_data, unpack
 
 
+@ddt
 class TestCell(unittest.TestCase):
 
     def setUp(self):
@@ -14,12 +16,11 @@ class TestCell(unittest.TestCase):
         cell = props.Cell('name')
         self.assertEqual(name, cell.name)
 
-    def test_wrong_name(self):
-        names = [123, 123.1, ['a','b']]
+    @data(123, 123.1, ['a','b'])
+    def test_wrong_name(self, name):
+        self.assertRaises(ValueError, lambda n: props.Cell(n), name)
 
-        for name in names:
-            self.assertRaises(ValueError, lambda n: props.Cell(n), name)
-
+@ddt
 class TestCellContainer(unittest.TestCase):
 
     NAME = 'name'
@@ -44,72 +45,84 @@ class TestCellContainer(unittest.TestCase):
     def setUp(self):
         pass
 
-    def test_constructor_proper(self):
-        for proper_cells in self.PROPER_CELLS_LIST:
-            try:
-                cc = props.CellContainer(self.NAME, proper_cells)
-            except:
-                self.fail('exception occured for {}!'
-                        .format(proper_cells))
-
-    def test_constructor_wrong(self):
-        for wrong_cells in self.WRONG_CELLS_LIST:
-            try:
-                cc = props.CellContainer(self.NAME, proper_cells)
-            except:
-                pass
-            else:
-                self.fail('exception not occured for {}'
-                        .format(wrong_cells))
-
-    def test_len(self):
-        for proper_cells in self.PROPER_CELLS_LIST:
+    @data(*PROPER_CELLS_LIST)
+    def test_constructor_proper(self, proper_cells):
+        try:
             cc = props.CellContainer(self.NAME, proper_cells)
-            self.assertEqual(len(cc), len(proper_cells))
+        except:
+            self.fail('exception occured for {}!'
+                    .format(proper_cells))
 
-    def test_getitem_and_contains(self):
-        ok_cell_names = ['c1', 'c2', '111']
-        cells = [props.Cell(name) for name in ok_cell_names]
+    @data(*WRONG_CELLS_LIST)
+    def test_constructor_wrong(self, wrong_cells):
+        try:
+            cc = props.CellContainer(self.NAME, proper_cells)
+        except:
+            pass
+        else:
+            self.fail('exception not occured for {}'
+                    .format(wrong_cells))
 
-        ok_prop_names = ['p1']
-        ok_prop_starting_vals = [1]
-        properties = [props.Property(name, val)
-                for name, val
-                in zip(ok_prop_names, ok_prop_starting_vals)]
+    @data(*PROPER_CELLS_LIST)
+    def test_len(self, proper_cells):
+        cc = props.CellContainer(self.NAME, proper_cells)
+        self.assertEqual(len(cc), len(proper_cells))
 
-        cc = props.CellContainer(self.NAME, cells+properties)
+    @unpack
+    @data( { 'key': 'k', 'names': ['a', 'b', 'c', 'k']},
+           { 'key': 'a', 'names': ['a']})
+    def test_getitem(self, key, names):
+        cells = [props.Cell(name) for name in names]
+        cc = props.CellContainer(self.NAME, cells)
+        self.assertEqual(cc[key].name, key)
 
-        # checking added names
-        cells_and_props = cells + properties
-        for cell in cells_and_props:
-            name = cell.name
-            self.assertTrue(cc.contains(name))
-            self.assertEqual(cc[name], cell)
+    @unpack
+    @data( { 'key': 'k', 'names': ['a', 'b', 'c', 'k']},
+           { 'key': 'a', 'names': ['a']})
+    def test_contains(self, key, names):
+        cells = [props.Cell(name) for name in names]
+        cc = props.CellContainer(self.NAME, cells)
+        self.assertTrue(cc.contains(key))
 
-        # assert this becouse we want to check if self.name is not automatically
-        # added to keys (names)
-        assert self.NAME not in ok_prop_names
-        assert self.NAME not in ok_cell_names
+    @unpack
+    @data( { 'key': 'z', 'names': ['a', 'b', 'c', 'k']},
+           { 'key': 'A', 'names': ['a']})
+    def test_getitem_assert(self, key, names):
+        cells = [props.Cell(name) for name in names]
+        cc = props.CellContainer(self.NAME, cells)
+        self.assertRaises(KeyError, lambda: cc[key])
 
-        # checking not added names
-        wrong_names = ['other', 111, None, self.NAME]
-        for wrong_name in wrong_names:
-            self.assertFalse(cc.contains(wrong_name))
-            self.assertRaises(KeyError, lambda: cc[wrong_name])
+    @unpack
+    @data( { 'key': 'z', 'names': ['a', 'b', 'c', 'k']},
+           { 'key': 'A', 'names': ['a']})
+    def test_not_contains(self, key, names):
+        cells = [props.Cell(name) for name in names]
+        cc = props.CellContainer(self.NAME, cells)
+        self.assertFalse(cc.contains(key))
 
-    def test_keys_and_values(self):
+    def test_getitem_same(self):
+        cells = [props.Cell('cell'), props.Property('prop', 1)]
+        cc = props.CellContainer(self.NAME, cells)
+        for cell in cells:
+            key = cell.name
+            self.assertEqual(cell, cc[key])
+
+    def test_not_contains_own_name(self):
+        names = ['a', 'b', 'c', 'd']
+        cells = [ props.Cell(name) for name in names ]
+        cc = props.CellContainer('name', cells)
+        self.assertFalse(cc.contains('name'))
+
+    def test_keys(self):
         names = ['a', 'z', '111', 'b', 'lorem ipsum']
         cells = [props.Cell(name) for name in names]
         cc = props.CellContainer(self.NAME, cells)
         self.assertEqual(cc.keys(), names)
-        self.assertEqual(cc.values(), cells)
 
-        copy_cells = cc.values()
-        copy_names = cc.keys()
-        copy_cells.append('test')
-        copy_names.append('test')
-
-        self.assertEqual(cc.keys(), names)
+    def test_values(self):
+        names = ['a', 'z', '111', 'b', 'lorem ipsum']
+        cells = [props.Cell(name) for name in names]
+        cc = props.CellContainer(self.NAME, cells)
         self.assertEqual(cc.values(), cells)
 
     def test_prop_value(self):
@@ -140,7 +153,7 @@ class TestCellContainer(unittest.TestCase):
         self.assertEqual(p1.value, 11)
         self.assertEqual(p2.value, 22)
 
-    def test_prop_value_changed_append(self):
+    def test_prop_appended_value_changed(self):
         cc = props.CellContainer(self.NAME, [])
 
         p = props.Property('p', 1)
@@ -189,6 +202,7 @@ class TestCellContainer(unittest.TestCase):
                         .format(cell.name))
 
 
+@ddt
 class TestProperty(unittest.TestCase):
 
     name = 'name'
@@ -347,7 +361,6 @@ class TestPropertyEnum(unittest.TestCase):
             else:
                 self.fail('No exception for name: {}, opts: {}, wrong val: {}'
                     .format(self.NAME, options, w_vals))
-
 
 
 
