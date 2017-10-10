@@ -69,32 +69,40 @@ class TestCellContainer(unittest.TestCase):
         self.assertEqual(len(cc), len(proper_cells))
 
     @unpack
-    @data( { 'key': 'k', 'names': ['a', 'b', 'c', 'k']},
-           { 'key': 'a', 'names': ['a']})
+    @data(
+        { 'key': 'k', 'names': ['a', 'b', 'c', 'k']},
+        { 'key': 'a', 'names': ['a']}
+    )
     def test_getitem(self, key, names):
         cells = [props.Cell(name) for name in names]
         cc = props.CellContainer(self.NAME, cells)
         self.assertEqual(cc[key].name, key)
 
     @unpack
-    @data( { 'key': 'k', 'names': ['a', 'b', 'c', 'k']},
-           { 'key': 'a', 'names': ['a']})
+    @data(
+        { 'key': 'k', 'names': ['a', 'b', 'c', 'k']},
+        { 'key': 'a', 'names': ['a']}
+    )
     def test_contains(self, key, names):
         cells = [props.Cell(name) for name in names]
         cc = props.CellContainer(self.NAME, cells)
         self.assertTrue(cc.contains(key))
 
     @unpack
-    @data( { 'key': 'z', 'names': ['a', 'b', 'c', 'k']},
-           { 'key': 'A', 'names': ['a']})
+    @data(
+        { 'key': 'z', 'names': ['a', 'b', 'c', 'k']},
+        { 'key': 'A', 'names': ['a']}
+    )
     def test_getitem_assert(self, key, names):
         cells = [props.Cell(name) for name in names]
         cc = props.CellContainer(self.NAME, cells)
         self.assertRaises(KeyError, lambda: cc[key])
 
     @unpack
-    @data( { 'key': 'z', 'names': ['a', 'b', 'c', 'k']},
-           { 'key': 'A', 'names': ['a']})
+    @data(
+        { 'key': 'z', 'names': ['a', 'b', 'c', 'k']},
+        { 'key': 'A', 'names': ['a']}
+    )
     def test_not_contains(self, key, names):
         cells = [props.Cell(name) for name in names]
         cc = props.CellContainer(self.NAME, cells)
@@ -194,13 +202,65 @@ class TestCellContainer(unittest.TestCase):
                 cc.append(cell)
             except ValueError:
                 pass
-            except:
-                self.fail('Wrong exception while adding prop of name {}'
-                        .format(cell.name))
+            except Exception as e:
+                self.fail('Wrong exception!: {}, {}'.format(type(e), str(e)))
             else:
                 self.fail('No exception while adding prop of name {}'
                         .format(cell.name))
 
+@ddt
+class TestStrictCellContainer(unittest.TestCase):
+
+    @data(
+        [],
+        [props.Cell('a')],
+        [props.Cell('a'), props.Cell('b')]
+    )
+    def test_constructor(self, cells):
+        try:
+            scc = props.StrictCellContainer('n', cells)
+        except Exception as e:
+            self.fail('Exception: {}'.format(str(e)))
+
+    @data(
+        [props.Cell('a'), props.Cell('a')],
+        [props.Cell('a'), props.Property('b', 1)],
+        [props.Property('a', 1)],
+        [props.PropertyInt('a', 2)]
+    )
+    def test_constructor_exception(self, cells):
+        try:
+            scc = props.StrictCellContainer('n', cells)
+        except ValueError:
+            pass
+        except Exception as e:
+            self.fail('Wrong Exception: {}!'.format(str(e)))
+        else:
+            self.fail('Exception not occured for {}!'.format(cells))
+
+    @data(props.Cell('a'))
+    def test_append(self, cell):
+        scc = props.StrictCellContainer('n', [props.Cell('x')])
+        try:
+            scc.append(cell)
+        except Exception as e:
+            self.fail('Exception: {}'.format(str(e)))
+
+    @data(
+        props.Cell('x'),
+        props.Property('b', 1),
+        props.PropertyInt('a', 2)
+    )
+    def test_append_exception(self, cell):
+        scc = props.StrictCellContainer('n', [props.Cell('x')])
+        try:
+            scc.append(cell)
+        except ValueError:
+            pass
+        except Exception as e:
+            self.fail('Wrong Exception: {}!'.format(str(e)))
+        else:
+            self.fail('Exception not occured for {}!'.format(cell))
 
 @ddt
 class TestProperty(unittest.TestCase):
@@ -250,9 +310,9 @@ class TestProperty(unittest.TestCase):
             except ValueError:
                 pass
             except:
-                self.fail("wrong exception, given {}".format(wrong_value))
+                self.fail('wrong exception, given {}'.format(wrong_value))
             else:
-                self.fail("not raised for {}".format(wrong_value))
+                self.fail('not raised for {}'.format(wrong_value))
 
 
 class TestPropertyInt(TestProperty):
@@ -302,66 +362,104 @@ class TestPropertyString(TestPropertyInt):
     TYPE = props.PropertyString
 
 
+@ddt
 class TestPropertyEnum(unittest.TestCase):
 
     NAME = 'name'
 
     def setUp(self):
+        self.good_vals = ['a', 'b', 'c']
+        self.init_val = self.good_vals[0]
+        self.bad_vals = ['A', self.NAME, None, 0]
+        options = [props.Cell(v) for v in self.good_vals]
+
+        self.enum = props.PropertyEnum(self.NAME, options, self.init_val)
+
+
+    @data(
+        [props.Cell('a')],
+        [props.Cell('a'), props.Cell('b')]
+    )
+    def test_constructor(self, good_options):
+        value = good_options[0].name
+        try:
+            enum = props.PropertyEnum(self.NAME, good_options, value)
+        except Exception as e:
+            self.fail('Exception occured for name: {}, opts: {}, '
+                      'val: {}: {}'
+                      .format(self.NAME, good_options, value, str(e)))
+
+    @data(
+        [],
+        [None],
+        [props.Cell('a'), 1],
+        [props.Cell('a'), props.Cell('a')],
+        [props.Cell('a'), props.Property('b',1)]
+    )
+    def test_constructor_exception(self, wrong_options):
+        try:
+            value = wrong_options[0].name
+        except:
+            value = None
+        try:
+            enum = props.PropertyEnum(self.NAME, wrong_options, value)
+        except ValueError:
+            pass
+        except Exception as e:
+            self.fail('Wrong exception!: {}, {}'.format(type(e), str(e)))
+        else:
+            self.fail('No exception for name: {}, wrong opts: {}, val: {}'
+                    .format(self.NAME, wrong_options, value))
+
+    @data('c', 'd', None, [], props.Cell('a'))
+    def test_constructor_wrong_values_exception(self, wrong_val):
+        options = [props.Cell('a'), props.Cell('b')]
+
+        try:
+            enum = props.PropertyEnum(self.NAME, options, wrong_val)
+        except ValueError:
+            pass
+        except Exception as e:
+            self.fail('Wrong exception!: {}, {}'.format(type(e), str(e)))
+        else:
+            self.fail('No exception for name: {}, opts: {}, wrong val: {}'
+                .format(self.NAME, options, wrong_val))
+
+    def test_not_as_container(self):
         pass
 
-    def test_constructor(self):
-        good_options_list = [
-                [props.Cell('a')],
-                [props.Cell('a'), props.Cell('b')] ]
-        for good_options in good_options_list:
-            value = good_options[0].name
-            try:
-                enum = props.PropertyEnum(self.NAME, good_options, value)
-            except Exception as e:
-                self.fail('Exception occured for name: {}, opts: {}, '
-                          'val: {}: {}'
-                          .format(self.NAME, good_options, value, str(e)))
+    def test_value(self):
+        self.assertEqual(self.enum.value, self.init_val)
 
-    def test_constructor_exception(self):
-        wrong_options_list = [
-                [],
-                [None],
-                [props.Cell('a'), 1],
-                [props.Cell('a'), props.Cell('a')],
-                [props.Cell('a'), props.Property('b',1)]]
+    def test_set_value(self):
+        for v in self.good_vals:
+            self.enum.value = v
+            self.assertEqual(self.enum.value, v)
 
-        for wrong_options in wrong_options_list:
+    def test_set_value_exception(self):
+        for v in self.bad_vals:
             try:
-                value = wrong_options[0].name
-            except:
-                value = None
-            try:
-                enum = props.PropertyEnum(self.NAME, wrong_options, value)
-            except ValueError:
-                pass
-            except:
-                self.fail('Wrong exception!')
-            else:
-                self.fail('No exception for name: {}, wrong opts: {}, val: {}'
-                        .format(self.NAME, wrong_options, value))
-
-    def test_constructor_wrong_values_exception(self):
-        good_options_list = [
-                [props.Cell('a')],
-                [props.Cell('a'), props.Cell('b')] ]
-        wrong_values = ['c', 'd', None, [], props.Cell('a')]
-
-        for options, w_vals in product(good_options_list, wrong_values):
-            try:
-                enum = props.PropertyEnum(self.NAME, options, w_vals)
+                self.enum.value = v
             except ValueError:
                 pass
             except Exception as e:
                 self.fail('Wrong exception!: {}, {}'.format(type(e), str(e)))
             else:
-                self.fail('No exception for name: {}, opts: {}, wrong val: {}'
-                    .format(self.NAME, options, w_vals))
+                self.fail('No exception for wrong val: {}'.format(v))
 
+    def test_options(self):
+        options = self.enum.options
+
+        for val in self.good_vals:
+            self.assertTrue(options.contains(val))
+
+    @unittest.skip("not implemented")
+    def test_loop_options(self):
+        try:
+            for opt in self.enum.options:
+                self.assertNotNull(opt)
+        except Exception as e:
+            self.fail('failed to loop, exception raisd: {}'.format(str(e)))
 
 
 if __name__ == '__main__':

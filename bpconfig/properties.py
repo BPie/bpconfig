@@ -1,6 +1,6 @@
 # encoding=utf-8
 from collections import OrderedDict
-from copy import copy
+from copy import copy, deepcopy
 
 
 class Cell(object):
@@ -22,6 +22,7 @@ class Cell(object):
 
 class CellContainer(Cell):
     CONTAINED_TYPE = Cell
+    EXACT_TYPE = False
 
     def __init__(self, name, cells=None):
         Cell.__init__(self, name)
@@ -53,7 +54,10 @@ class CellContainer(Cell):
         return name in self.keys()
 
     def _is_proper_type(self, cell):
-        return isinstance(cell, self.CONTAINED_TYPE)
+        if self.EXACT_TYPE:
+            return type(cell) is self.CONTAINED_TYPE
+        else:
+            return isinstance(cell, self.CONTAINED_TYPE)
 
     def append(self, cell):
         if not self._is_proper_type(cell):
@@ -64,6 +68,10 @@ class CellContainer(Cell):
                     .format(cell.name))
         else:
             self._cells.append(cell)
+
+
+class StrictCellContainer(CellContainer):
+    EXACT_TYPE = True
 
 
 class Property(Cell):
@@ -80,7 +88,13 @@ class Property(Cell):
     def value(self, value):
         if value is None:
             raise ValueError('Wrong value: cannot be None!')
-        self._value = value
+        if self._additional_value_check(value):
+            self._value = value
+        else:
+            raise ValueError('Additional value requirements not met!')
+
+    def _additional_value_check(self, value):
+        return True
 
 
 class PropertyInt(Property):
@@ -90,19 +104,24 @@ class PropertyInt(Property):
 
     @Property.value.setter
     def value(self, value):
+
+        # proper value type
         if isinstance(value, self._TYPE):
-            self._value = value
+            pass
         elif isinstance(value, self._ACCEPTED_TYPES):
             try:
                 value = self._TYPE(value)
             except:
                 raise ValueError('Wrong value type: cannot cast from {} to {}'
                         .format(type(value), self._TYPE))
-            else:
-                self._value = value
         else:
             raise ValueError('Wrong value type')
 
+        # additional check and final set
+        if self._additional_value_check(value):
+            self._value = value
+        else:
+            raise ValueError('Additional value requirements not met!')
 
 class PropertyFloat(PropertyInt):
 
@@ -116,7 +135,7 @@ class PropertyString(PropertyInt):
     _ACCEPTED_TYPES = (basestring,)
 
 
-class PropertyEnum(CellContainer, PropertyString):
+class PropertyEnum(PropertyString):
     ''' class that contains options and has currently set value
     that matches some option's name '''
 
@@ -128,13 +147,12 @@ class PropertyEnum(CellContainer, PropertyString):
             raise ValueError('value should be a string type!')
 
         try:
-            CellContainer.__init__(self, name, options)
+            self._options = StrictCellContainer(name+'\'s container_', options)
         except Exception as e:
             raise ValueError('Wrong name or options for CellContainer: {}'
                     .format(str(e)))
 
-
-        if not self.contains(value):
+        if not self._options.contains(value):
             raise ValueError('value {} not found in options {}'
                     .format(value, options))
 
@@ -144,14 +162,13 @@ class PropertyEnum(CellContainer, PropertyString):
             raise ValueError('Wrong name or value for PropertyString: {}'
                     .format(str(e)))
 
+    def _additional_value_check(self, value):
+        return self._options.contains(value)
 
-    def _is_proper_type(self, option):
-        ''' accepts only pure Cells types'''
-        return type(option) is Cell
+    @property
+    def options(self):
+        return copy(self._options)
 
-    # @PropertyString.value.setter
-    # def value(self):
-    #     pass
 
 if __name__ == '__main__':
     cell = Cell('name')
