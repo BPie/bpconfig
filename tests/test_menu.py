@@ -20,7 +20,6 @@ class TestCell(unittest.TestCase):
         self.container = root
         self.menu = menu.Menu(self.container)
 
-
     @data(
         [],
         [props.Cell('a'), props.Property('b',1)],

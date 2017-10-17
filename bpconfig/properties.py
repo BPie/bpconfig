@@ -19,6 +19,10 @@ class Cell(object):
     def __str__(self):
         return "Cell({})".format(self.name)
 
+    @property
+    def fields(self):
+        return {'name': self.name, 'type': 'cell'}
+
 
 class CellContainer(Cell):
     CONTAINED_TYPE = Cell
@@ -69,6 +73,9 @@ class CellContainer(Cell):
         else:
             self._cells.append(cell)
 
+    def __iter__(self):
+        for cell in self._cells:
+            yield cell
 
 class StrictCellContainer(CellContainer):
     EXACT_TYPE = True

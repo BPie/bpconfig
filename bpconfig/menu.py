@@ -2,11 +2,51 @@
 from __future__ import absolute_import
 
 import os
+from collections import OrderedDict
 from operator import getitem
 from blessings import Terminal
 
 from . import properties as props
 
+def fingerprint_finder(names, mapped_fingerprint=None, generator=None):
+    current_name = names[0]
+    if not mapped_fingerprint:
+        mapped_fingerprint = OrderedDict()
+    used = mapped_fingerprint.keys()
+    possible = [ch for ch in current_name if ch not in used]
+
+    if not possible:
+        possible_upper = [ch.upper() for ch in current_name
+                if ch.upper() not in used]
+
+        if not possible_upper:
+            if generator is None:
+                def gen():
+                    i = 0
+                    while True:
+                        yield '{}'.format(i)
+                        i += 1
+                generator = gen()
+
+            # while for the case when there were already numbers
+            # (eg. there was a cell with name "1something")
+            fingerprint = next(generator)
+            while fingerprint in used:
+                fingerprint = next(generator)
+        else:
+            fingerprint = possible_upper[0]
+    else:
+        fingerprint = possible[0]
+
+
+    names = names[1:]
+    mapped_fingerprint[fingerprint] = current_name
+
+    if names:
+        mapped_fingerprint = fingerprint_finder(names,
+                mapped_fingerprint, generator)
+
+    return mapped_fingerprint
 
 class Menu(object):
 
@@ -20,13 +60,34 @@ class Menu(object):
 
         self._pos = [self._container.name]
         self._t = Terminal()
+        self._flags = {'type': True, 'name': True, 'shortcut': True}
 
     def _print_bar(self):
         with self._t.location(0,0):
             tail = self._pos[:-1]
             head = self._pos[-1]
             print self._t.black_on_white('/'.join(tail)) \
-                    + self._t.bold_magenta_on_white('/'+head)
+                    + self._t.bold_black_on_white('/'+head)
+
+    def _print_cell(self, cell, shortcut=None):
+        msg = ''
+        if self._flags['shortcut'] and shortcut is not None:
+            msg += '[{}] '.format(shortcut)
+
+        if self._flags['type']:
+            msg += cell.fields['type'] + ': '
+
+        if self._flags['name']:
+            msg += cell.fields['name']
+        print msg
+
+    def _print_options(self):
+        shortcuts = fingerprint_finder(self._current.keys())
+
+        with self._t.location(5, 5):
+            print ' ~~~< options >~~~ '
+            for shortcut, cell in zip(shortcuts.keys(), self._current):
+                self._print_cell(cell, shortcut)
 
     @property
     def _current(self):
@@ -55,10 +116,11 @@ class Menu(object):
     def run(self):
         with self._t.fullscreen():
             self._print_bar()
+            self._print_options()
             a = raw_input()
 
-    def _clear(self):
-        os.system('cls' if os.name == 'nt' else 'clear')
+    # def _clear(self):
+    #     os.system('cls' if os.name == 'nt' else 'clear')
 
     def _up(self):
         pass
@@ -79,4 +141,18 @@ if __name__ == '__main__':
     menu._go_up('lvl2')
     menu.run()
     # menu._print_bar()
+
+    # some_list = [
+    #         'name',
+    #         'nome',
+    #         'far',
+    #         'foo',
+    #         'bar',
+    #         'noob',
+    #         'something',
+    #         'quant']
+
+
+    # print fingerprint_finder(some_list)
+
 
