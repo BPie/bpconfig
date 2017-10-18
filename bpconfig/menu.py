@@ -1,18 +1,22 @@
 #encoding = utf-8
 from __future__ import absolute_import
+from __future__ import print_function
 
 import os
-from collections import OrderedDict
+from collections import OrderedDict, defaultdict
 from operator import getitem
-from blessings import Terminal
+from blessed import Terminal
 
 from . import properties as props
 
-def fingerprint_finder(names, mapped_fingerprint=None, generator=None):
+
+def shortcut_finder(names, mapped_shortcut=None, generator=None, banned=None):
     current_name = names[0]
-    if not mapped_fingerprint:
-        mapped_fingerprint = OrderedDict()
-    used = mapped_fingerprint.keys()
+    if not mapped_shortcut:
+        mapped_shortcut = OrderedDict()
+    used = mapped_shortcut.keys()
+    if banned is not None:
+        used += banned
     possible = [ch for ch in current_name if ch not in used]
 
     if not possible:
@@ -30,23 +34,23 @@ def fingerprint_finder(names, mapped_fingerprint=None, generator=None):
 
             # while for the case when there were already numbers
             # (eg. there was a cell with name "1something")
-            fingerprint = next(generator)
-            while fingerprint in used:
-                fingerprint = next(generator)
+            shortcut = next(generator)
+            while shortcut in used:
+                shortcut = next(generator)
         else:
-            fingerprint = possible_upper[0]
+            shortcut = possible_upper[0]
     else:
-        fingerprint = possible[0]
-
+        shortcut = possible[0]
 
     names = names[1:]
-    mapped_fingerprint[fingerprint] = current_name
+    mapped_shortcut[shortcut] = current_name
 
     if names:
-        mapped_fingerprint = fingerprint_finder(names,
-                mapped_fingerprint, generator)
+        mapped_shortcut = shortcut_finder(names,
+                mapped_shortcut, generator)
 
-    return mapped_fingerprint
+    return mapped_shortcut
+
 
 class Menu(object):
 
@@ -58,34 +62,57 @@ class Menu(object):
         else:
             raise ValueError("Wrong container type")
 
+
         self._pos = [self._container.name]
         self._t = Terminal()
-        self._flags = {'type': True, 'name': True, 'shortcut': True}
+        self._flags = defaultdict( lambda: False, {
+            'type': True,
+            'name': True,
+            'shortcut': True,
+            'value': True})
 
-    def _print_bar(self):
+    def _actions(self, inactive_too=False):
+        actions = {}
+
+        if inactive_too or not self._in_root:
+            actions['h'] = props.Action('back', lambda: self._go_down())
+
+        return actions
+
+    @property
+    def _reserved_shortcuts(self):
+        return self._actions(True).keys()
+
+
+    def _print_headder(self):
         with self._t.location(0,0):
             tail = self._pos[:-1]
             head = self._pos[-1]
-            print self._t.black_on_white('/'.join(tail)) \
-                    + self._t.bold_black_on_white('/'+head)
+            print(self._t.black_on_white('/'.join(tail)) \
+                    + self._t.bold_black_on_white('/'+head))
+
+
+    def _formated_cell_attr(self, cell, attrname, str_template):
+        if not self._flags[attrname] or not hasattr(cell, attrname):
+            return ''
+
+        attr_val = getattr(cell, attrname)
+        return str_template.format(attr_val)
 
     def _print_cell(self, cell, shortcut=None):
         msg = ''
-        if self._flags['shortcut'] and shortcut is not None:
-            msg += '[{}] '.format(shortcut)
-
-        if self._flags['type']:
-            msg += cell.fields['type'] + ': '
-
-        if self._flags['name']:
-            msg += cell.fields['name']
-        print msg
+        attrstr = lambda n,t: self._formated_cell_attr(cell, n, t)
+        msg += attrstr('type', '[{}] ')
+        msg += attrstr('name', '{}')
+        msg += attrstr('value', ' = {}')
+        print(msg)
 
     def _print_options(self):
-        shortcuts = fingerprint_finder(self._current.keys())
+        banned = self._reserved_shortcuts
+        shortcuts = shortcut_finder( self._current.keys(), banned=banned)
 
         with self._t.location(5, 5):
-            print ' ~~~< options >~~~ '
+            print(' ~~~< options >~~~ ')
             for shortcut, cell in zip(shortcuts.keys(), self._current):
                 self._print_cell(cell, shortcut)
 
@@ -100,7 +127,6 @@ class Menu(object):
             raise RuntimeWarning('wrong child name: {}'.format(name))
         else:
             self._pos.append(new_cell.name)
-            self._up()
 
     @property
     def _in_root(self):
@@ -111,21 +137,50 @@ class Menu(object):
             raise RuntimeWarning('you\'re in root')
         else:
             self._pos = self._pos[:-1]
-            self._up()
+
+    def _clear(self):
+        print(self._t.clear())
+
+    @property
+    def location(self):
+        return self._t.get_location(timeout=5)
+
+    def _print_footer_and_interact(self):
+        th = self._t.height
+        prompt = ' >>> '
+        msgs = {
+                th: prompt,
+                th-1: ' ',
+                th-2: '_'*self._t.width,
+                }
+
+        for h, msg in msgs.iteritems():
+            with self._t.location(0, h):
+                if msg == prompt:
+                    prompt_loc = self.location
+                print(msg, end='')
+
+        w, h = prompt_loc[1], prompt_loc[0]
+        w = w + len(prompt)
+        # h = h - 2
+        with self._t.location(w, h):
+            inp = raw_input()
+            self._handle_input(inp)
+
+    def _handle_input(self, inp):
+        actions = self._actions()
+        if inp in actions:
+            actions[inp]()
+        else:
+            pass
 
     def run(self):
         with self._t.fullscreen():
-            self._print_bar()
-            self._print_options()
-            a = raw_input()
-
-    # def _clear(self):
-    #     os.system('cls' if os.name == 'nt' else 'clear')
-
-    def _up(self):
-        pass
-        # self._clear()
-        # self.print_all()
+            while(True):
+                self._clear()
+                self._print_headder()
+                self._print_options()
+                self._print_footer_and_interact()  # has to be the last one!
 
 
 if __name__ == '__main__':
@@ -153,6 +208,6 @@ if __name__ == '__main__':
     #         'quant']
 
 
-    # print fingerprint_finder(some_list)
+    # print(fingerprint_finder(some_list))
 
 

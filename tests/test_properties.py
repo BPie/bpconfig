@@ -20,6 +20,39 @@ class TestCell(unittest.TestCase):
     def test_wrong_name(self, name):
         self.assertRaises(ValueError, lambda n: props.Cell(n), name)
 
+
+@ddt
+class TestAction(unittest.TestCase):
+
+    def setUp(self):
+        pass
+
+    @data(1, 's', None, lambda x: x+1)
+    def test_action_as_function(self, ret_val):
+        def foo():
+            return ret_val
+
+        a = props.Action('name', foo)
+        self.assertEqual(a(), ret_val)
+
+    def test_action_as_lambda(self):
+        a = props.Action('name', lambda: 1)
+        self.assertEqual(a(), 1)
+
+    @data(1, None, 's')
+    def test_action_exception(self, n_call):
+        assert(not callable(n_call))
+        self.assertRaises(ValueError, lambda: props.Action('name', n_call))
+
+    def test_is_callable(self):
+        a = props.Action('name', lambda: 1)
+        self.assertTrue(callable(a))
+
+    @unittest.skip('not implemented')
+    def test_function_with_args(self):
+        pass
+
+
 @ddt
 class TestCellContainer(unittest.TestCase):
 

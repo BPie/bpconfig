@@ -5,6 +5,8 @@ from copy import copy, deepcopy
 
 class Cell(object):
 
+    TYPE = 'cell'
+
     def __init__(self, name):
         if not isinstance(name, basestring):
             raise ValueError("Wrong argument type (name: string)")
@@ -13,20 +15,40 @@ class Cell(object):
         self._name = name
 
     @property
+    def type(self):
+        return self.TYPE
+
+    @property
     def name(self):
         return self._name
 
     def __str__(self):
         return "Cell({})".format(self.name)
 
-    @property
-    def fields(self):
-        return {'name': self.name, 'type': 'cell'}
+
+class Action(Cell):
+
+    TYPE = 'action'
+
+    def __init__(self, name, action):
+        Cell.__init__(self, name)
+        if not callable(action):
+            raise ValueError('Given action is not callable!')
+        # todo: check that the action has no arguments
+        self._action = action
+
+    def __str__(self):
+        return "Action({}): {}".format(self.name, self._action)
+
+    def __call__(self):
+        return self._action()
 
 
 class CellContainer(Cell):
+
     CONTAINED_TYPE = Cell
     EXACT_TYPE = False
+    TYPE = 'container'
 
     def __init__(self, name, cells=None):
         Cell.__init__(self, name)
@@ -78,10 +100,14 @@ class CellContainer(Cell):
             yield cell
 
 class StrictCellContainer(CellContainer):
+
     EXACT_TYPE = True
+    TYPE = 'strict container'
 
 
 class Property(Cell):
+
+    TYPE = 'variant'
 
     def __init__(self, name, value):
         Cell.__init__(self, name)
@@ -103,9 +129,13 @@ class Property(Cell):
     def _additional_value_check(self, value):
         return True
 
+    def __str__(self):
+        return "prop({}): {}".format(self.name, self.value)
+
 
 class PropertyInt(Property):
 
+    TYPE = 'int'
     _TYPE = int
     _ACCEPTED_TYPES = (basestring)
 
@@ -130,14 +160,17 @@ class PropertyInt(Property):
         else:
             raise ValueError('Additional value requirements not met!')
 
+
 class PropertyFloat(PropertyInt):
 
+    TYPE = 'float'
     _TYPE = float
     _ACCEPTED_TYPES = (float, int, basestring)
 
 
 class PropertyString(PropertyInt):
 
+    TYPE = 'str'
     _TYPE = unicode
     _ACCEPTED_TYPES = (basestring,)
 
@@ -145,6 +178,8 @@ class PropertyString(PropertyInt):
 class PropertyEnum(PropertyString):
     ''' class that contains options and has currently set value
     that matches some option's name '''
+
+    TYPE = 'enum'
 
     def __init__(self, name, options, value):
         if not options:
