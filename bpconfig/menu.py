@@ -2,19 +2,20 @@
 from __future__ import absolute_import
 from __future__ import print_function
 
-import os
-from collections import OrderedDict, defaultdict
+import sys
+import re
+from collections import OrderedDict, defaultdict, deque
 from operator import getitem
 from blessed import Terminal
 
 from . import properties as props
 
 
-def shortcut_finder(names, mapped_shortcut=None, generator=None, banned=None):
+def short_finder(names, mapped_short=None, generator=None, banned=None):
     current_name = names[0]
-    if not mapped_shortcut:
-        mapped_shortcut = OrderedDict()
-    used = mapped_shortcut.keys()
+    if not mapped_short:
+        mapped_short = OrderedDict()
+    used = mapped_short.keys()
     if banned is not None:
         used += banned
     possible = [ch for ch in current_name if ch not in used]
@@ -34,22 +35,22 @@ def shortcut_finder(names, mapped_shortcut=None, generator=None, banned=None):
 
             # while for the case when there were already numbers
             # (eg. there was a cell with name "1something")
-            shortcut = next(generator)
-            while shortcut in used:
-                shortcut = next(generator)
+            short = next(generator)
+            while short in used:
+                short = next(generator)
         else:
-            shortcut = possible_upper[0]
+            short = possible_upper[0]
     else:
-        shortcut = possible[0]
+        short = possible[0]
 
     names = names[1:]
-    mapped_shortcut[shortcut] = current_name
+    mapped_short[short] = current_name
 
     if names:
-        mapped_shortcut = shortcut_finder(names,
-                mapped_shortcut, generator)
+        mapped_short = short_finder(names,
+                mapped_short, generator)
 
-    return mapped_shortcut
+    return mapped_short
 
 
 class Menu(object):
@@ -68,19 +69,24 @@ class Menu(object):
         self._flags = defaultdict( lambda: False, {
             'type': True,
             'name': True,
-            'shortcut': True,
+            'short': True,
             'value': True})
+        self._info = ''
+        self._debug = deque([], maxlen=5)
+        self._inp = ''
+        self._inp_spc = ''
 
     def _actions(self, inactive_too=False):
         actions = {}
 
         if inactive_too or not self._in_root:
             actions['h'] = props.Action('back', lambda: self._go_down())
+        actions['Q'] = props.Action('quit', lambda: sys.exit())
 
         return actions
 
     @property
-    def _reserved_shortcuts(self):
+    def _actions_shorts(self):
         return self._actions(True).keys()
 
 
@@ -99,7 +105,7 @@ class Menu(object):
         attr_val = getattr(cell, attrname)
         return str_template.format(attr_val)
 
-    def _print_cell(self, cell, shortcut=None):
+    def _print_cell(self, cell, short=None):
         msg = ''
         attrstr = lambda n,t: self._formated_cell_attr(cell, n, t)
         msg += attrstr('type', '[{}] ')
@@ -107,14 +113,24 @@ class Menu(object):
         msg += attrstr('value', ' = {}')
         print(msg)
 
+
+    @property
+    def _options_shorts(self):
+        banned = self._actions_shorts
+        return short_finder(self._current.keys(), banned=banned)
+
+    @property
+    def _options(self):
+        shorts, vals = self._options_shorts, self._current.values()
+        return OrderedDict(zip(shorts, vals))
+
     def _print_options(self):
-        banned = self._reserved_shortcuts
-        shortcuts = shortcut_finder( self._current.keys(), banned=banned)
+        shorts = self._options_shorts
 
         with self._t.location(5, 5):
             print(' ~~~< options >~~~ ')
-            for shortcut, cell in zip(shortcuts.keys(), self._current):
-                self._print_cell(cell, shortcut)
+            for short, cell in zip(shorts.keys(), self._current):
+                self._print_cell(cell, short)
 
     @property
     def _current(self):
@@ -127,6 +143,29 @@ class Menu(object):
             raise RuntimeWarning('wrong child name: {}'.format(name))
         else:
             self._pos.append(new_cell.name)
+
+    def _r_str(self, s, mode):
+        if mode == 'exact':
+            return r'^{}$'.format(s)
+        elif mode == 'all':
+            return r'^{}(\S*)$'.format(s)
+        elif mode == 'prefix':
+            return r'^{}(\S+)$'.format(s)
+        else:
+            raise ValueError('wong mode value: {}'.format(mode))
+
+    def _fltr_actions_shorts(self, mode):
+        r_str = self._r_str(self._inp, mode)
+        return [s for s in self._actions().keys() if re.match(r_str, s)]
+
+    def _fltr_options_shorts(self, mode):
+        r_str = self._r_str(self._inp, mode)
+        return [s for s in self._options.keys() if re.match(r_str, s)]
+
+    def _fltr_shorts(self, mode='all'):
+        act_n = self._fltr_actions_shorts(mode)
+        opt_n = self._fltr_options_shorts(mode)
+        return act_n + opt_n
 
     @property
     def _in_root(self):
@@ -145,13 +184,25 @@ class Menu(object):
     def location(self):
         return self._t.get_location(timeout=5)
 
+    def _print_debug(self):
+        if not self._debug or self._t.height < 20:
+            return
+
+        h = self._t.height - 6
+        with self._t.location(0, h):
+            print('## debug ##', end='')
+            for i,d in enumerate(self._debug):
+                print(' || #{}: {}'.format(i,d), end='')
+
+
     def _print_footer_and_interact(self):
         th = self._t.height
-        prompt = ' >>> '
+        prompt = ' >>> {}'.format(self._inp)
         msgs = {
                 th: prompt,
                 th-1: ' ',
                 th-2: '_'*self._t.width,
+                th-3: self._info
                 }
 
         for h, msg in msgs.iteritems():
@@ -164,15 +215,73 @@ class Menu(object):
         w = w + len(prompt)
         # h = h - 2
         with self._t.location(w, h):
-            inp = raw_input()
-            self._handle_input(inp)
+            self._gather_inp()
+            self._handle_inp()
 
-    def _handle_input(self, inp):
-        actions = self._actions()
-        if inp in actions:
-            actions[inp]()
+    def _gather_inp(self):
+        with self._t.cbreak():
+            val = self._t.inkey(timeout=1)
+            if not val:
+                self._inp_spc = 'timeout'
+            elif val.is_sequence and val.name in ('KEY_ENTER', 'KEY_ESCAPE'):
+                self._inp_spc = val.name
+            elif len(str(val)) == 1:
+                self._inp += str(val)
+            else:
+                self._info = 'unhandled inp character: [{}]'.format(val)
+
+    def _clean_inp(self):
+        self._inp = ''
+        self._inp_spc = ''
+
+    # def _inp_consume_request(self):
+    #     return  self._inp_spc in ('KEY_ENTER', 'timeout')
+
+    def _inp_spc_meaning(self):
+        if self._inp_spc in ('KEY_ESCAPE'):
+            return 'cleaning'
+        elif self._inp_spc in ('KEY_ENTER', 'timeout'):
+            return 'consume'
         else:
-            pass
+            return None
+
+    def _handle_inp(self):
+        if self._inp_spc_meaning == 'cleaning':
+            self._info = 'inp cleaned'
+            self._clean_inp()
+        elif len(self._fltr_shorts('all')) <= 0:
+            self._info = 'wrong inp: [{}], cleaned!'.format(self._inp)
+            self._clean_inp()
+        elif len(self._fltr_shorts('all')) == 1 or \
+                 (self._inp_spc_meaning() == 'consume' and self._inp):
+            self._info = 'consuming inp : [{}]'.format(self._inp)
+            self._consume_inp()
+            self._clean_inp()
+        else:
+            add_msg =  r' waiting for inp ...'
+            if not re.findall(add_msg, self._info):
+                self._info += ' (' + add_msg + ')'
+
+
+    def _consume_inp(self):
+        # getting the right name for an option or action
+        if len(self._fltr_shorts('exact')) == 1:
+            short = self._inp
+        elif len(self._fltr_shorts('all')) == 1:
+            short = self._fltr_shorts('all')[0]
+        else:
+            self._info += ' (failed: not found)'
+            return
+
+        # executing
+        if short in self._actions():
+            action = self._actions()[short]
+            self._info = 'invoked action [{}]: {}' \
+                    .format(short, action.name)
+            action()
+        else:
+            #  todo
+            self._info = 'option {}'.format(short)
 
     def run(self):
         with self._t.fullscreen():
@@ -180,6 +289,7 @@ class Menu(object):
                 self._clear()
                 self._print_headder()
                 self._print_options()
+                self._print_debug()
                 self._print_footer_and_interact()  # has to be the last one!
 
 
