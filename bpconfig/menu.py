@@ -75,6 +75,7 @@ class Menu(object):
         self._debug = deque([], maxlen=5)
         self._inp = ''
         self._inp_spc = ''
+        self._location_cache = {}
 
     def _actions(self, inactive_too=False):
         actions = {}
@@ -90,12 +91,12 @@ class Menu(object):
         return self._actions(True).keys()
 
 
-    def _print_headder(self):
+    def _print_header(self):
         with self._t.location(0,0):
             tail = self._pos[:-1]
             head = self._pos[-1]
-            print(self._t.black_on_white('/'.join(tail)) \
-                    + self._t.bold_black_on_white('/'+head))
+            print(self._t.center(self._t.black_on_white('/'.join(tail))
+                    + self._t.bold_black_on_white('/'+head)))
 
 
     def _formated_cell_attr(self, cell, attrname, str_template):
@@ -103,15 +104,73 @@ class Menu(object):
             return ''
 
         attr_val = getattr(cell, attrname)
-        return str_template.format(attr_val)
+        filled = str_template.format(attr_val)
+        formatted = self._formater(cell, attrname)(filled)
+        return formatted
 
-    def _print_cell(self, cell, short=None):
+    def _formater(self, cell, attrname='name'):
+        if isinstance(cell, props.CellContainer):
+            return self._cont_f(cell, attrname)
+        elif isinstance(cell, props.PropertyEnum):
+            return self._enum_f(cell, attrname)
+        elif isinstance(cell, props.Action):
+            return self._act_f(cell, attrname)
+        elif hasattr(cell, 'value'):
+            return self._val_f(cell, attrname)
+        else:
+            return self._cell_f(cell, attrname)
+
+    @property
+    def _empty_formatter(self):
+        return self._t.white
+
+    def _cell_f(self, cell, attrname):
+        return self._empty_formatter
+
+    def _cont_f(self, cell, attrname):
+        if attrname == 'type':
+            return self._t.yellow
+        else:
+            return self._empty_formatter
+
+    def _val_f(self, cell, attrname):
+        if attrname == 'type':
+            return self._t.blue
+        else:
+            return self._empty_formatter
+
+    def _enum_f(self, cell, attrname):
+        if attrname == 'type':
+            return self._t.magenta
+        else:
+            return self._empty_formatter
+
+    def _act_f(self, cell, attrname):
+        if attrname == 'type':
+            return self._t.green
+        else:
+            return self._empty_formatter
+
+    def _mark_name(self, name, short, f=None):
+        # default formatter
+        if not f:
+            f = self._t.cyan
+
+        # need to add info about short if not found in name
+        if not re.findall(short, name, flags=re.IGNORECASE):
+            name = '[{}]: '.format(short) + name
+        return re.sub(short, f(short), name, 1, re.IGNORECASE)
+        # return name.lower().replace(short.lower(), f(short), 1)
+
+    def _print_cell(self, cell, short):
         msg = ''
         attrstr = lambda n,t: self._formated_cell_attr(cell, n, t)
-        msg += attrstr('type', '[{}] ')
-        msg += attrstr('name', '{}')
-        msg += attrstr('value', ' = {}')
-        print(msg)
+        name = attrstr('name', '{}')
+        marked = self._mark_name(name, short)
+        msg += self._t.rjust(attrstr('type', '[{}] '), width=15)
+        msg += self._t.center(marked, width=10)
+        msg += self._t.ljust(attrstr('value', '= {}'), width=15)
+        print(self._t.center(msg))
 
 
     @property
@@ -127,8 +186,8 @@ class Menu(object):
     def _print_options(self):
         shorts = self._options_shorts
 
-        with self._t.location(5, 5):
-            print(' ~~~< options >~~~ ')
+        with self._t.location(0,1):
+            print(self._t.center(' ~~~< options >~~~ '))
             for short, cell in zip(shorts.keys(), self._current):
                 self._print_cell(cell, short)
 
@@ -181,8 +240,8 @@ class Menu(object):
         print(self._t.clear())
 
     @property
-    def location(self):
-        return self._t.get_location(timeout=5)
+    def _current_loc(self):
+        return self._t.get_location()
 
     def _print_debug(self):
         if not self._debug or self._t.height < 20:
@@ -195,7 +254,7 @@ class Menu(object):
                 print(' || #{}: {}'.format(i,d), end='')
 
 
-    def _print_footer_and_interact(self):
+    def _print_footer(self):
         th = self._t.height
         prompt = ' >>> {}'.format(self._inp)
         msgs = {
@@ -207,16 +266,10 @@ class Menu(object):
 
         for h, msg in msgs.iteritems():
             with self._t.location(0, h):
-                if msg == prompt:
-                    prompt_loc = self.location
                 print(msg, end='')
+                if msg == prompt:
+                    self._location_cache['prompt'] = self._current_loc
 
-        w, h = prompt_loc[1], prompt_loc[0]
-        w = w + len(prompt)
-        # h = h - 2
-        with self._t.location(w, h):
-            self._gather_inp()
-            self._handle_inp()
 
     def _gather_inp(self):
         with self._t.cbreak():
@@ -280,17 +333,20 @@ class Menu(object):
                     .format(short, action.name)
             action()
         else:
-            #  todo
-            self._info = 'option {}'.format(short)
+            opt = self._options[short]
+            self._info = 'option [{}]: {}'.format(short, opt.name)
+            self._go_up(opt.name)
 
     def run(self):
         with self._t.fullscreen():
             while(True):
                 self._clear()
-                self._print_headder()
+                self._print_header()
                 self._print_options()
                 self._print_debug()
-                self._print_footer_and_interact()  # has to be the last one!
+                self._print_footer()
+                self._gather_inp()
+                self._handle_inp()
 
 
 if __name__ == '__main__':
