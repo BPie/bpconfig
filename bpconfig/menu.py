@@ -47,8 +47,8 @@ def short_finder(names, mapped_short=None, generator=None, banned=None):
     mapped_short[short] = current_name
 
     if names:
-        mapped_short = short_finder(names,
-                mapped_short, generator)
+        mapped_short = short_finder(names=names, mapped_short=mapped_short,
+                generator=generator, banned=banned)
 
     return mapped_short
 
@@ -77,18 +77,66 @@ class Menu(object):
         self._inp_spc = ''
         self._loc_cache = {}
 
-    def _actions(self, inactive_too=False):
         actions = {}
+        actions['h'] = props.Action(
+                'left',
+                lambda: self._go_down(),
+                lambda: not self._in_root)
+        actions['j'] = props.Action(
+                'down',
+                lambda: self._highlight_down(),
+                lambda: self._state == 'container')
+        actions['k'] = props.Action(
+                'up',
+                lambda: self._highlight_up(),
+                lambda: self._state == 'container')
+        actions['l'] = props.Action(
+                'right',
+                lambda: self._go_up(self._highlighted),
+                lambda: (self._state in ('container', 'enum')
+                        and self._highlighted))
+        cancel_action = props.Action(
+                'cancel',
+                lambda: self._cancel,
+                lambda: self._state in ('container', 'enum'))
+        actions['KEY_ESCAPE'] = cancel_action
+        actions['cancel'] = cancel_action
 
-        if inactive_too or not self._in_root:
-            actions['h'] = props.Action('back', lambda: self._go_down())
+        accept_action = props.Action(
+                'accept',
+                lambda: self._cancel,
+                lambda: self._state in ('container', 'enum'))
+        actions['KEY_ENTER'] = accept_action
+        actions['accept'] = accept_action
+
         actions['Q'] = props.Action('quit', lambda: sys.exit())
-
-        return actions
+        self._actions = actions
 
     @property
-    def _actions_shorts(self):
-        return self._actions(True).keys()
+    def _highlighted(self):
+        return None
+
+    def _highlight_down(self):
+        pass
+
+    def _highlight_up(self):
+        pass
+    @property
+    def _current(self):
+        return reduce(getitem, self._pos[1:], self._container)
+
+    @property
+    def _state(self):
+        if isinstance(self._current, props.PropertyEnum):
+            return 'enum'
+        elif isinstance(self._current, props.Property):
+            return 'property'
+        elif isinstance(self._current, props.CellContainer):
+            return 'container'
+
+    @property
+    def _parent(self):
+        return reduce(getitem, self._pos[1:-1], self._container)
 
 
     def _print_header(self):
@@ -162,7 +210,7 @@ class Menu(object):
         return re.sub(short, f(short), name, 1, re.IGNORECASE)
         # return name.lower().replace(short.lower(), f(short), 1)
 
-    def _print_cell(self, cell, short):
+    def _print_option(self, cell, short, formatter=None):
         msg = ''
         attrstr = lambda n,t: self._formated_cell_attr(cell, n, t)
         name = attrstr('name', '{}')
@@ -170,30 +218,56 @@ class Menu(object):
         msg += self._t.rjust(attrstr('type', '[{}] '), width=15)
         msg += self._t.center(marked, width=10)
         msg += self._t.ljust(attrstr('value', '= {}'), width=15)
-        print(self._t.center(msg))
 
-
-    @property
-    def _options_shorts(self):
-        banned = self._actions_shorts
-        return short_finder(self._current.keys(), banned=banned)
+        if formatter is None:
+            formatter = self._empty_formatter
+        print(formatter(self._t.center(msg)))
 
     @property
     def _options(self):
-        shorts, vals = self._options_shorts, self._current.values()
-        return OrderedDict(zip(shorts, vals))
-
-    def _print_options(self):
-        shorts = self._options_shorts
-
-        with self._t.location(0,1):
-            print(self._t.center(' ~~~< options >~~~ '))
-            for short, cell in zip(shorts.keys(), self._current):
-                self._print_cell(cell, short)
+        return self._get_options(self._current)
 
     @property
-    def _current(self):
-        return reduce(getitem, self._pos[1:], self._container)
+    def _parent_options(self):
+        return self._get_options(self._parent)
+
+    def _get_options(self, container):
+        # cells
+        cells = container.values()
+
+        # shorts
+        shorts_taken = self._actions.keys()
+        shorts = short_finder(container.keys(), banned=shorts_taken)
+
+        # combine
+        return OrderedDict(zip(shorts, cells))
+
+    def _print_current(self):
+        if isinstance(self._current, props.CellContainer):
+            self._print_options()
+        elif isinstance(self._current, props.Property):
+            self._print_edit()
+        else:
+            pass
+
+
+    def _print_options(self):
+        assert self._state == 'container'
+        with self._t.location(0,2):
+            print(self._t.center(' ~~~< options >~~~ '))
+            for short, cell in self._options.iteritems():
+                self._print_option(cell, short)
+
+    def _print_edit(self):
+        assert self._state == 'property'
+        with self._t.location(0,2):
+            print(self._t.center(' ~~~< edit >~~~ '))
+            for short, cell in self._parent_options.iteritems():
+                if cell == self._current:
+                    formatter = None
+                else:
+                    formatter = self._t.dim
+                self._print_option(cell, short, formatter)
 
     def _go_up(self, name):
         try:
@@ -201,13 +275,8 @@ class Menu(object):
         except:
             raise RuntimeWarning('wrong child name: {}'.format(name))
         else:
-            if isinstance(new_cell, props.CellContainer):
-                self._pos.append(new_cell.name)
-            else:
-                self._edit(new_cell)
+            self._pos.append(new_cell.name)
 
-    def _edit(self, cell):
-        pass
 
     def _r_str(self, s, mode):
         if mode == 'exact':
@@ -219,16 +288,16 @@ class Menu(object):
         else:
             raise ValueError('wong mode value: {}'.format(mode))
 
-    def _fltr_actions_shorts(self, mode):
+    def _fltr_all_actions_short(self, mode):
         r_str = self._r_str(self._inp, mode)
-        return [s for s in self._actions().keys() if re.match(r_str, s)]
+        return [s for s in self._actions.keys() if re.match(r_str, s)]
 
     def _fltr_options_shorts(self, mode):
         r_str = self._r_str(self._inp, mode)
         return [s for s in self._options.keys() if re.match(r_str, s)]
 
     def _fltr_shorts(self, mode='all'):
-        act_n = self._fltr_actions_shorts(mode)
+        act_n = self._fltr_all_actions_short(mode)
         opt_n = self._fltr_options_shorts(mode)
         return act_n + opt_n
 
@@ -323,6 +392,11 @@ class Menu(object):
             if not re.findall(add_msg, self._info):
                 self._info += ' (' + add_msg + ')'
 
+    def _cancel(self):
+        pass
+
+    def _timeout(self):
+        pass
 
     def _consume_inp(self):
         # getting the right name for an option or action
@@ -335,22 +409,23 @@ class Menu(object):
             return
 
         # executing
-        if short in self._actions():
-            action = self._actions()[short]
-            self._info = 'invoked action [{}]: {}' \
-                    .format(short, action.name)
+        if short in self._actions:
+            action = self._actions[short]
+            self._info = 'invoked action [{}]: {}'.format(short, action.name)
             action()
-        else:
+        elif short in self._options:
             opt = self._options[short]
             self._info = 'option [{}]: {}'.format(short, opt.name)
             self._go_up(opt.name)
+        else:
+            raise RuntimeError('wrong shortcut ({}) to consume'.format(short))
 
     def run(self):
         with self._t.fullscreen():
             while(True):
                 self._clear()
                 self._print_header()
-                self._print_options()
+                self._print_current()
                 self._print_debug()
                 self._print_footer()
                 self._gather_inp()

@@ -75,3 +75,32 @@ class TestCell(unittest.TestCase):
     def test_go_up_raises(self, option):
         self.assertRaises(RuntimeWarning, lambda: self.menu._go_up(option))
 
+@ddt
+class TestShortFinder(unittest.TestCase):
+
+    @unpack
+    @data(
+        (['abc', 'bxb', 'cxc'], ['a', 'b', 'c']),
+        (['a', 'aa', 'aaa'], ['a', 'A', '0']),
+        (['abc', 'abcd', 'abcde', 'a'], ['a', 'b', 'c', 'A']),
+    )
+    def testBasic(self, inp, expected_results):
+        results = menu.short_finder(inp)
+        for result, expected in zip(results, expected_results):
+            self.assertEqual(result, expected)
+
+
+    @unpack
+    @data(
+        (['adfc', 'bxb', 'cxc'], ['d', 'x', 'C'],['a', 'b', 'c']),
+        (['a', 'aa', 'aaa'], ['0', '1', '2'], ['a','A']),
+        (['a', 'aa', 'aaa'], ['a', 'A', '0'], ['abba'])
+    )
+    def testBanned(self, inp, expected_results, banned):
+        results = menu.short_finder(inp, banned=banned)
+        for result, expected in zip(results, expected_results):
+            self.assertEqual(result, expected)
+
+
+if __name__ == '__main__':
+    unittest.main()

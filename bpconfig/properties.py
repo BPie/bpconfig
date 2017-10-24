@@ -30,18 +30,29 @@ class Action(Cell):
 
     TYPE = 'action'
 
-    def __init__(self, name, action):
+    def __init__(self, name, action_f, is_active_f=None):
         Cell.__init__(self, name)
-        if not callable(action):
-            raise ValueError('Given action is not callable!')
-        # todo: check that the action has no arguments
-        self._action = action
+        if not callable(action_f):
+            raise ValueError('Given action_f is not callable!')
+        # todo: check that the action_f has no arguments
+        self._action_f = action_f
+
+        # function that checks if action_f is active
+        if is_active_f is None:
+            is_active_f = lambda: True
+        if not callable(is_active_f):
+            raise ValueError('Given is_active_f is not callable!')
+        self._is_active_f = is_active_f
 
     def __str__(self):
-        return "Action({}): {}".format(self.name, self._action)
+        return "Action({}): {}".format(self.name, self._action_f)
+
+    def __nonzero__(self):
+        return self._is_active_f()
 
     def __call__(self):
-        return self._action()
+        if self:
+            return self._action_f()
 
 
 class CellContainer(Cell):
