@@ -75,7 +75,7 @@ class Menu(object):
         self._debug = deque([], maxlen=5)
         self._inp = ''
         self._inp_spc = ''
-        self._location_cache = {}
+        self._loc_cache = {}
 
     def _actions(self, inactive_too=False):
         actions = {}
@@ -201,7 +201,13 @@ class Menu(object):
         except:
             raise RuntimeWarning('wrong child name: {}'.format(name))
         else:
-            self._pos.append(new_cell.name)
+            if isinstance(new_cell, props.CellContainer):
+                self._pos.append(new_cell.name)
+            else:
+                self._edit(new_cell)
+
+    def _edit(self, cell):
+        pass
 
     def _r_str(self, s, mode):
         if mode == 'exact':
@@ -268,30 +274,33 @@ class Menu(object):
             with self._t.location(0, h):
                 print(msg, end='')
                 if msg == prompt:
-                    self._location_cache['prompt'] = self._current_loc
+                    x = self._current_loc[1]
+                    y = self._current_loc[0]
+                    self._loc_cache['prompt'] = x, y
 
 
     def _gather_inp(self):
-        with self._t.cbreak():
-            val = self._t.inkey(timeout=1)
-            if not val:
-                self._inp_spc = 'timeout'
-            elif val.is_sequence and val.name in ('KEY_ENTER', 'KEY_ESCAPE'):
-                self._inp_spc = val.name
-            elif len(str(val)) == 1:
-                self._inp += str(val)
-            else:
-                self._info = 'unhandled inp character: [{}]'.format(val)
+        x, y = self._loc_cache["prompt"][1], self._loc_cache["prompt"][0]
+        with self._t.location(*self._loc_cache['prompt']):
+            with self._t.cbreak():
+                val = self._t.inkey(timeout=1)
+                if not val:
+                    self._inp_spc = 'timeout'
+                elif val.is_sequence and val.name in ('KEY_ENTER', 'KEY_ESCAPE'):
+                    self._inp_spc = val.name
+                elif len(str(val)) == 1:
+                    self._inp += str(val)
+                else:
+                    self._info = 'unhandled inp character: [{}]'.format(val)
 
     def _clean_inp(self):
         self._inp = ''
         self._inp_spc = ''
 
-    # def _inp_consume_request(self):
-    #     return  self._inp_spc in ('KEY_ENTER', 'timeout')
 
+    @property
     def _inp_spc_meaning(self):
-        if self._inp_spc in ('KEY_ESCAPE'):
+        if self._inp_spc in ('KEY_ESCAPE',):
             return 'cleaning'
         elif self._inp_spc in ('KEY_ENTER', 'timeout'):
             return 'consume'
@@ -303,11 +312,10 @@ class Menu(object):
             self._info = 'inp cleaned'
             self._clean_inp()
         elif len(self._fltr_shorts('all')) <= 0:
-            self._info = 'wrong inp: [{}], cleaned!'.format(self._inp)
+            self._info = 'wrong inp: [{}]!'.format(self._inp)
             self._clean_inp()
         elif len(self._fltr_shorts('all')) == 1 or \
-                 (self._inp_spc_meaning() == 'consume' and self._inp):
-            self._info = 'consuming inp : [{}]'.format(self._inp)
+                 (self._inp_spc_meaning == 'consume' and self._inp):
             self._consume_inp()
             self._clean_inp()
         else:
