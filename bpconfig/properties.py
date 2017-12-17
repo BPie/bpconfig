@@ -222,6 +222,21 @@ class PropertyEnum(PropertyString):
     def options(self):
         return copy(self._options)
 
+    def __len__(self):
+        return len(self._options)
+
+    def __getitem__(self, name):
+        return self._options[name]
+
+    def keys(self):
+        return self._options.keys()
+
+    def values(self):
+        return self._options.values()
+
+    def contains(self, name):
+        return self._options.contains(name)
+
 
 if __name__ == '__main__':
     cell = Cell('name')
