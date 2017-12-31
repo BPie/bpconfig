@@ -11,7 +11,7 @@ from blessed import Terminal
 from . import properties as props
 
 
-class ShortManager:
+class ShortMapper:
     def __init__(self):
         pass
 
@@ -23,7 +23,7 @@ class ShortManager:
     Generator TODO
     banned is a list of shorts that should not be used.
     '''
-    def find(self, names, mapped_short=None, generator=None, banned=None):
+    def create_map(self, names, mapped_short=None, generator=None, banned=None):
         current_name = names[0]
         if not mapped_short:
             mapped_short = OrderedDict()
@@ -59,10 +59,37 @@ class ShortManager:
         mapped_short[short] = current_name
 
         if names:
-            mapped_short = self.find(
+            mapped_short = self.create_map(
                     names=names,
                     mapped_short=mapped_short,
                     generator=generator,
                     banned=banned)
 
         return mapped_short
+
+
+class ShortFinder:
+
+    def __init__(self):
+        pass
+
+
+    REGEXP = { 'exact': r'^{}$',
+            'prefixed': r'^{}(\S*)$' }
+            # r'^{}(\S+)$'
+
+    def __call__(self, shorts, sequence):
+        regex_str = self.REGEXP['prefixed'].format(sequence)
+
+        return [s for s in shorts if re.match(regex_str, s)]
+
+    def contains(self, shorts, sequence):
+        regex_str = self.REGEXP['exact'].format(sequence)
+
+        for s in shorts:
+            if re.match(regex_str, s):
+                return True
+        return False
+
+
+

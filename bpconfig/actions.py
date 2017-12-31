@@ -14,11 +14,12 @@ from . import style
 
 class ActionManager(object):
 
-    def __init__(self):
+    def __init__(self, debug=None):
         self._actions = {}
+        self._debug = debug
 
     def add(self, key, action):
-        if key in actions.keys():
+        if key in self._actions.keys():
             raise KeyError('key {} already in use for '
                     .format(key, self._actions[key].name))
         self._actions[key] = action
@@ -30,4 +31,7 @@ class ActionManager(object):
     @property
     def usable(self):
         return {key: action for (key, action) in self._actions.iteritems() if action}
+
+    def __getitem__(self, key):
+        return self.usable[key]
 

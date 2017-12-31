@@ -10,11 +10,12 @@ from blessed import Terminal
 
 from . import properties as props
 from . import style
+from .shorts import ShortMapper
 
 
 class State(object):
 
-    def __init__(self, container):
+    def __init__(self, container, actions, debug=None):
         if isinstance(container, list):
             self._container = props.CellContainer('root', container)
         elif isinstance(container, props.CellContainer):
@@ -25,6 +26,13 @@ class State(object):
 
         self._pos = [self._container.name]
         self._info = ''
+        self._shorts = ShortMapper()
+        self._actions = actions
+        self._debug = debug
+
+    @property
+    def path(self):
+        return self._pos
 
     ''' Gets current cell'''
     @property
@@ -47,7 +55,7 @@ class State(object):
         elif isinstance(self.current, props.Action):
             return 'action'
         else:
-            raise ValueError('wrong current type: {}'.format(self._current))
+            raise ValueError('wrong current type: {}'.format(self.current))
 
 
 
@@ -60,7 +68,7 @@ class State(object):
     ''' Go to next cell (child) with matching name '''
     def go_next(self, name):
         try:
-            new_cell = self._current[name]
+            new_cell = self.current[name]
         except:
             raise RuntimeWarning('wrong child name: {}'.format(name))
         else:
@@ -68,10 +76,36 @@ class State(object):
 
     ''' Go to previous cell (parent) '''
     def go_previous(self):
-        if self._in_root:
+        if self.in_root:
             raise RuntimeWarning('you\'re in root')
         else:
             self._pos = self._pos[:-1]
+
+    '''
+    Gets current possible options
+
+    Excludes used shorst (by actions).
+    Returns OrderedDict (shorts: cells)
+    '''
+    @property
+    def options(self):
+        if self.mode not in ('enum', 'container'):
+            return None
+
+        used_keys = self._actions.all.keys()
+        current = self.current
+        short_map = self._shorts.create_map(current.keys(), banned=used_keys)
+
+        return OrderedDict(zip(short_map, current.values()))
+
+    '''
+    Gets possible actions to invoke
+
+    Returns dict (shorts: actions)
+    '''
+    @property
+    def actions(self):
+        return self._actions.usable
 
     # @property
     # def _current_loc(self):
