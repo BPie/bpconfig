@@ -81,6 +81,12 @@ class CellContainer(Cell):
         else:
             raise KeyError('name {} not found'.format(name))
 
+    def __getattr__(self, attr):
+        return self.__getitem__(attr)
+
+    def __setitem__(self, key, value):
+        self.__getattr__(key).value = value
+
     def keys(self):
         return [cell.name for cell in self._cells]
 
