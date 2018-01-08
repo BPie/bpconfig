@@ -1,3 +1,5 @@
+#encoding=utf-8
+
 import sys
 import unittest
 
@@ -8,7 +10,7 @@ import bpconfig.menu as menu
 
 
 @ddt
-class TestCell(unittest.TestCase):
+class TestMenu(unittest.TestCase):
 
     def setUp(self):
         lvl2 = props.CellContainer('lvl2',
@@ -35,71 +37,6 @@ class TestCell(unittest.TestCase):
     )
     def test_contstructor_raises(self, container):
         self.assertRaises(ValueError, lambda: menu.Menu(container))
-
-    def test_current_root(self):
-        self.assertEqual(self.menu._current, self.container)
-
-    def test_movement(self):
-        def go_up(destination):
-            self.menu._go_up(destination)
-            self.assertEqual(self.menu._current.name, destination)
-
-        def go_down(compare):
-            self.menu._go_down()
-            self.assertEqual(self.menu._current.name, compare)
-
-        go_up('lvl1')
-        go_up('lvl2')
-        go_up('2c1')
-        go_down('lvl2')
-        go_up('2p1')
-        go_down('lvl2')
-        go_down('lvl1')
-        go_up('1c2')
-        go_down('lvl1')
-        go_up('1c2')
-        go_down('lvl1')
-        go_down('root')
-        go_up('rc1')
-        go_down('root')
-
-    def test_go_down_in_root_raises(self):
-        self.assertRaises(RuntimeWarning, lambda: self.menu._go_down())
-
-    @data(
-        'a',
-        '1c2',
-        'root',
-        '2p2',
-    )
-    def test_go_up_raises(self, option):
-        self.assertRaises(RuntimeWarning, lambda: self.menu._go_up(option))
-
-@ddt
-class TestShortFinder(unittest.TestCase):
-
-    @unpack
-    @data(
-        (['abc', 'bxb', 'cxc'], ['a', 'b', 'c']),
-        (['a', 'aa', 'aaa'], ['a', 'A', '0']),
-        (['abc', 'abcd', 'abcde', 'a'], ['a', 'b', 'c', 'A']),
-    )
-    def testBasic(self, inp, expected_results):
-        results = menu.short_finder(inp)
-        for result, expected in zip(results, expected_results):
-            self.assertEqual(result, expected)
-
-
-    @unpack
-    @data(
-        (['adfc', 'bxb', 'cxc'], ['d', 'x', 'C'],['a', 'b', 'c']),
-        (['a', 'aa', 'aaa'], ['0', '1', '2'], ['a','A']),
-        (['a', 'aa', 'aaa'], ['a', 'A', '0'], ['abba'])
-    )
-    def testBanned(self, inp, expected_results, banned):
-        results = menu.short_finder(inp, banned=banned)
-        for result, expected in zip(results, expected_results):
-            self.assertEqual(result, expected)
 
 
 if __name__ == '__main__':
