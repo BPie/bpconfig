@@ -496,6 +496,65 @@ class TestPropertyEnum(unittest.TestCase):
         except Exception as e:
             self.fail('failed to loop, exception raisd: {}'.format(str(e)))
 
+@ddt
+class TestPropertyUnion(unittest.TestCase):
+
+    NAME = 'name'
+
+    @data(
+        {
+            'a': [props.Cell('a1'), props.Cell('a2')],
+            'b': [props.Cell('b1')]
+        }
+    )
+    def test_constructor(self, type_map):
+        try:
+            union = props.Union(self.NAME, type_map)
+        except Exception as e:
+            self.fail('Exception occured for name: {}, type_map: {}, '
+                      ': {}'
+                      .format(self.NAME, type_maplue, str(e)))
+
+    @data(
+        {
+            'a': [props.Cell('a1'), props.Cell('a2')],
+            'b': [props.Cell('b1')]
+        }
+    )
+    def test_change_type(self, type_map):
+        union = props.Union(self.NAME, type_map)
+
+        try:
+            for possible_type in type_map.keys():
+                union['type'].value = possible_type
+        except KeyError() as e:
+            self.fail('Exception occured for type {} : {}'
+                    .format(possible_type, e))
+
+
+    @unpack
+    @data(
+        (
+            {
+                'a': [props.Cell('a1'), props.Cell('a2')],
+                'b': [props.Cell('b1')]
+            },
+            ['c', 'A', 'aa']
+        )
+    )
+    def test_change_type(self, type_map, bad_types):
+        union = props.Union(self.NAME, type_map)
+
+        for bad_type in bad_types:
+            try:
+                union['type'].value = bad_type
+            except ValueError as e:
+                pass
+            else:
+                self.fail('Exception NOT occured for type {} : {}'
+                        .format(possible_type, e))
+
+
 
 if __name__ == '__main__':
     unittest.main()
