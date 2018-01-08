@@ -1,4 +1,5 @@
 # encoding=utf-8
+
 from collections import OrderedDict
 from copy import copy, deepcopy
 
@@ -77,12 +78,20 @@ class CellContainer(Cell):
     def __getitem__(self, name):
         for cell in self._cells:
             if cell.name == name:
+                # print 'found cell named ', name
                 return cell
-        else:
-            raise KeyError('name {} not found'.format(name))
+            # print 'NOT found cell named ', name
+        raise KeyError('name {} not found'.format(name))
 
-    def __getattr__(self, attr):
-        return self.__getitem__(attr)
+    # def __getattribute__(self, attr):
+    #     try:
+    #         return Cell.__getattribute__(self, attr)
+    #     except AttributeError as e:
+    #         print 'NO attr named ', attr, e
+    #         return self.__getitem__(attr)
+    #     else:
+    #         print 'found attr named ', attr
+
 
     def __setitem__(self, key, value):
         self.__getattr__(key).value = value
@@ -115,6 +124,7 @@ class CellContainer(Cell):
     def __iter__(self):
         for cell in self._cells:
             yield cell
+
 
 class StrictCellContainer(CellContainer):
 
@@ -244,6 +254,85 @@ class PropertyEnum(PropertyString):
         return self._options.contains(name)
 
 
+class Union(CellContainer):
+
+    def __init__(self, name, types_map):
+        Cell.__init__(self, name)
+        types = [Cell(s) for s in types_map.keys()]
+        self._type = PropertyEnum('type', types, types_map.keys()[0])
+        self._map = types_map
+
+    @property
+    def type(self):
+        return self._type.value
+
+    # @type.setter
+    # def type(self, value):
+
+
+    @property
+    def _cells(self):
+        cells = self._map[self.type]
+        cells_copy = deepcopy(cells)
+        # cells_copy = copy(cells)
+        # cells_copy = cells
+        cells_copy.append(self._type)
+        return cells_copy
+
+    def __str__(self):
+        return "Union[{}]({}: {})".format(
+                len(self),
+                self.name,
+                self._type.name)
+
+    # def __len__(self):
+    #     return len(self._cells)
+
+    # def __getitem__(self, name):
+    #     for cell in self._cells:
+    #         if cell.name == name:
+    #             return cell
+    #     else:
+    #         raise KeyError('name {} not found'.format(name))
+
+    # def __getattr__(self, attr):
+    #     return self.__getitem__(attr)
+
+    # def __setitem__(self, key, value):
+    #     self.__getattr__(key).value = value
+
+    # def keys(self):
+    #     return [cell.name for cell in self._cells]
+
+    # def values(self):
+    #     return copy(self._cells)
+
+    # def contains(self, name):
+    #     return name in self.keys()
+
+    # def _is_proper_type(self, cell):
+    #     if self.EXACT_TYPE:
+    #         return type(cell) is self.CONTAINED_TYPE
+    #     else:
+    #         return isinstance(cell, self.CONTAINED_TYPE)
+
+    def append(self, cell):
+        if not self._is_proper_type(cell):
+            raise ValueError('cell should be of type {} ({} given)'
+                    .format(self.CONTAINED_TYPE, type(cell)))
+        elif self.contains(cell.name):
+            raise ValueError('cell with name {} already exists!'
+                    .format(cell.name))
+        else:
+            self._map[self._type].append(cell)
+            # self._cells.append(cell)
+
+    # def __iter__(self):
+    #     for cell in self._cells:
+    #         yield cell
+
+
 if __name__ == '__main__':
     cell = Cell('name')
     print cell.name
+

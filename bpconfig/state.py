@@ -94,7 +94,7 @@ class State(object):
 
         used_keys = self._actions.all.keys()
         current = self.current
-        short_map = self._shorts.create_map(current.keys(), banned=used_keys)
+        short_map = self._shorts(current.keys(), banned=used_keys)
 
         return OrderedDict(zip(short_map, current.values()))
 

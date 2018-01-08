@@ -11,6 +11,11 @@ from blessed import Terminal
 from . import properties as props
 
 
+'''
+class that creates short (shortcut) from given set of Cells.
+
+If possible shorts are letters from cell.name attribute (upper or lowercase).
+'''
 class ShortMapper:
     def __init__(self):
         pass
@@ -23,7 +28,7 @@ class ShortMapper:
     Generator TODO
     banned is a list of shorts that should not be used.
     '''
-    def create_map(self, names, mapped_short=None, generator=None, banned=None):
+    def __call__(self, names, mapped_short=None, generator=None, banned=None):
         current_name = names[0]
         if not mapped_short:
             mapped_short = OrderedDict()
@@ -59,7 +64,7 @@ class ShortMapper:
         mapped_short[short] = current_name
 
         if names:
-            mapped_short = self.create_map(
+            mapped_short = self.__call__(
                     names=names,
                     mapped_short=mapped_short,
                     generator=generator,
@@ -68,6 +73,9 @@ class ShortMapper:
         return mapped_short
 
 
+'''
+Class that finds shors matching given sentence
+'''
 class ShortFinder:
 
     def __init__(self):
@@ -83,13 +91,14 @@ class ShortFinder:
 
         return [s for s in shorts if re.match(regex_str, s)]
 
-    def contains(self, shorts, sequence):
-        regex_str = self.REGEXP['exact'].format(sequence)
+    # not needed for now
+    # def contains(self, shorts, sequence):
+    #     regex_str = self.REGEXP['exact'].format(sequence)
 
-        for s in shorts:
-            if re.match(regex_str, s):
-                return True
-        return False
+    #     for s in shorts:
+    #         if re.match(regex_str, s):
+    #             return True
+    #     return False
 
 
 

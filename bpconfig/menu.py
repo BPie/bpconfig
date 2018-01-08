@@ -99,6 +99,10 @@ class Menu(object):
         #         self._handle_inp()
 
 def _test_get_root():
+    u = props.Union('union', {
+        'a': [props.Cell('a1'), props.Cell('a2')],
+        'b': [props.Cell('b1')]
+        })
     cont_2 = props.CellContainer('lvl2',
             [props.Cell('2c1'),
             props.Property('2p1', 1),
@@ -107,7 +111,8 @@ def _test_get_root():
             props.PropertyInt('int prop', 5) ,
             props.PropertyEnum('enum prop',
                 [props.Cell(e_str) for e_str in ['a', 'b', 'c', 'd']],
-                'a')
+                'a'),
+            u
             ])
     cont_1 = props.CellContainer('lvl1', [props.Cell('1c2'), cont_2])
     cont_root = props.CellContainer('root', [props.Cell('rc1'), cont_1])
