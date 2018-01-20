@@ -16,6 +16,18 @@ class Cell(object):
         self._name = name
 
     @property
+    def readable(self):
+        return false
+
+    @property
+    def writeable(self):
+        return false
+
+    @property
+    def executable(self):
+        return hasattr(self, '__call__')
+
+    @property
     def type(self):
         return self.TYPE
 
@@ -24,7 +36,14 @@ class Cell(object):
         return self._name
 
     def __str__(self):
-        return "Cell({})".format(self.name)
+        return "<Cell({})>".format(self.name)
+
+    @property
+    def __call__(self):
+        if not self.executable:
+            raise RuntimeError('{}({}) is not executable!'
+                    .format(self.TYPE, self.name))
+
 
 
 class Action(Cell):
@@ -34,7 +53,7 @@ class Action(Cell):
     def __init__(self, name, action_f, is_active_f=None):
         Cell.__init__(self, name)
         if not callable(action_f):
-            raise ValueError('Given action_f is not callable!')
+            raise RuntimeError('Given action_f is not callable!')
         # todo: check that the action_f has no arguments
         self._action_f = action_f
 
@@ -42,14 +61,22 @@ class Action(Cell):
         if is_active_f is None:
             is_active_f = lambda: True
         if not callable(is_active_f):
-            raise ValueError('Given is_active_f is not callable!')
+            raise RuntimeError('Given is_active_f is not callable!')
         self._is_active_f = is_active_f
 
     def __str__(self):
-        return "Action({}): {}".format(self.name, self._action_f)
+        return "<Action({}): {}>".format(self.name, self._action_f)
 
     def __nonzero__(self):
         return self._is_active_f()
+
+    @property
+    def readable(self):
+        return False
+
+    @property
+    def writeable(self):
+        return False
 
     def __call__(self):
         if self:
@@ -70,7 +97,7 @@ class CellContainer(Cell):
             map(self.append, cells)
 
     def __str__(self):
-        return "CellContainer[{}]({})".format(len(self), self.name)
+        return "<CellContainer[{}]({})>".format(len(self), self.name)
 
     def __len__(self):
         return len(self._cells)
@@ -136,18 +163,38 @@ class Property(Cell):
 
     TYPE = 'variant'
 
-    def __init__(self, name, value):
+    def __init__(self, name, value, r=True, w=True):
         Cell.__init__(self, name)
+        self._r = r
+        self._w = True
         self.value = value
+        self._w = w
+
+    @property
+    def writeable(self):
+        return self._w
+
+    @property
+    def readable(self):
+        return self._r
 
     @property
     def value(self):
+        if not self.readable:
+            raise RuntimeError('{}({}) is not readable!'
+                    .format(self.TYPE, self.name))
+
         return self._value
 
     @value.setter
     def value(self, value):
+        if not self.writeable:
+            raise RuntimeError('{}({}) is not writeable!'
+                    .format(self.TYPE, self.name))
+
         if value is None:
             raise ValueError('Wrong value: cannot be None!')
+
         if self._additional_value_check(value):
             self._value = value
         else:
@@ -157,35 +204,42 @@ class Property(Cell):
         return True
 
     def __str__(self):
-        return "prop({}): {}".format(self.name, self.value)
+        return "<{}({}): {}>".format(self.TYPE, self.name, self.value)
 
 
 class PropertyInt(Property):
 
     TYPE = 'int'
     _TYPE = int
-    _ACCEPTED_TYPES = (basestring)
+    _ACCEPTED_TYPES = (basestring,)
+
+    def _convert(self, value):
+        if isinstance(value, self._TYPE):
+            return value
+        elif isinstance(value, self._ACCEPTED_TYPES):
+            return self._TYPE(value)
+        else:
+            raise ValueError('wrong value type {}, not a TYPE: {}'
+                             'nor accepted type {}!'.format(
+                                 type(value),
+                                 self._TYPE,
+                                 self._ACCEPTED_TYPES))
 
     @Property.value.setter
     def value(self, value):
 
+        if not self.writeable:
+            raise RuntimeError('is not writeable!'
+                    .format(self.TYPE, self.name))
+
         # proper value type
-        if isinstance(value, self._TYPE):
-            pass
-        elif isinstance(value, self._ACCEPTED_TYPES):
-            try:
-                value = self._TYPE(value)
-            except:
-                raise ValueError('Wrong value type: cannot cast from {} to {}'
-                        .format(type(value), self._TYPE))
-        else:
-            raise ValueError('Wrong value type')
+        value = self._convert(value)
 
         # additional check and final set
         if self._additional_value_check(value):
             self._value = value
         else:
-            raise ValueError('Additional value requirements not met!')
+            raise ValueError('additional value requirements not met!')
 
 
 class PropertyFloat(PropertyInt):
@@ -208,28 +262,22 @@ class PropertyEnum(PropertyString):
 
     TYPE = 'enum'
 
-    def __init__(self, name, options, value):
+    def __init__(self, name, options, value, **kwargs):
+
         if not options:
             raise ValueError('options cannot be empty!')
 
         if not isinstance(value, basestring):
             raise ValueError('value should be a string type!')
 
-        try:
-            self._options = StrictCellContainer(name+'\'s container_', options)
-        except Exception as e:
-            raise ValueError('Wrong name or options for CellContainer: {}'
-                    .format(str(e)))
+        self._options = StrictCellContainer(name+'\'s container_', options)
 
         if not self._options.contains(value):
             raise ValueError('value {} not found in options {}'
                     .format(value, options))
 
-        try:
-            PropertyString.__init__(self, name, value)
-        except Exception as e:
-            raise ValueError('Wrong name or value for PropertyString: {}'
-                    .format(str(e)))
+        PropertyString.__init__(self, name, value, **kwargs)
+
 
     def _additional_value_check(self, value):
         return self._options.contains(value)
@@ -254,7 +302,28 @@ class PropertyEnum(PropertyString):
         return self._options.contains(name)
 
 
+class PropertyBool(PropertyEnum):
+
+    TYPE = 'bool'
+    _ACCEPTED_TYPES = (bool, basestring)
+
+    def __init__(self, name, value, **kwargs):
+        bool_options = [Cell('True'), Cell('False')]
+
+        if value is True:
+            value = 'True'
+        elif value is False:
+            value = 'False'
+
+        PropertyEnum.__init__(self, name, bool_options, value, **kwargs)
+
+    def __nonzero__(self):
+        return self.value == 'True'
+
+
 class Union(CellContainer):
+
+    TYPE = 'union'
 
     def __init__(self, name, types_map):
         Cell.__init__(self, name)
@@ -280,7 +349,7 @@ class Union(CellContainer):
         return cells_copy
 
     def __str__(self):
-        return "Union[{}]({}: {})".format(
+        return "<Union[{}]({}: {})>".format(
                 len(self),
                 self.name,
                 self._type.name)

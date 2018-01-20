@@ -10,9 +10,7 @@ from ddt import ddt, data, file_data, unpack
 @ddt
 class TestCell(unittest.TestCase):
 
-    def setUp(self):
-        pass
-
+    TYPE_NAME='cell'
     def test_proper_name(self):
         name = 'name'
         cell = props.Cell('name')
@@ -22,13 +20,17 @@ class TestCell(unittest.TestCase):
     def test_wrong_name(self, name):
         self.assertRaises(ValueError, lambda n: props.Cell(n), name)
 
+    def test_type(self):
+        cell = props.Cell('name')
+        self.assertEqual(cell.type, self.TYPE_NAME)
+        self.assertEqual(cell.TYPE, self.TYPE_NAME)
+
+
 
 @ddt
 class TestAction(unittest.TestCase):
 
-    def setUp(self):
-        pass
-
+    TYPE_NAME = 'action'
     @data(1, 's', None, lambda x: x+1)
     def test_action_as_function(self, ret_val):
         def foo():
@@ -41,10 +43,11 @@ class TestAction(unittest.TestCase):
         a = props.Action('name', lambda: 1)
         self.assertEqual(a(), 1)
 
+
     @data(1, None, 's')
     def test_action_exception(self, n_call):
         assert(not callable(n_call))
-        self.assertRaises(ValueError, lambda: props.Action('name', n_call))
+        self.assertRaises(RuntimeError, lambda: props.Action('name', n_call))
 
     def test_is_callable(self):
         a = props.Action('name', lambda: 1)
@@ -76,32 +79,30 @@ class TestCellContainer(unittest.TestCase):
             [props.Cell('a'), props.CellContainer('a')],
             [props.Cell('a'), 1]]
 
+    TYPE_NAME = 'container'
 
-    def setUp(self):
-        pass
+    def test_constructor_proper(self):
+        for proper_cells in self.PROPER_CELLS_LIST:
+            try:
+                cc = props.CellContainer(self.NAME, proper_cells)
+            except:
+                self.fail('exception occured for {}!'
+                        .format(proper_cells))
 
-    @data(*PROPER_CELLS_LIST)
-    def test_constructor_proper(self, proper_cells):
-        try:
+    def test_constructor_wrong(self):
+        for wrong_cells in self.WRONG_CELLS_LIST:
+            try:
+                cc = props.CellContainer(self.NAME, wrong_cells)
+            except:
+                pass
+            else:
+                self.fail('exception not occured for {}'
+                        .format(wrong_cells))
+
+    def test_len(self):
+        for proper_cells in self.PROPER_CELLS_LIST:
             cc = props.CellContainer(self.NAME, proper_cells)
-        except:
-            self.fail('exception occured for {}!'
-                    .format(proper_cells))
-
-    @data(*WRONG_CELLS_LIST)
-    def test_constructor_wrong(self, wrong_cells):
-        try:
-            cc = props.CellContainer(self.NAME, proper_cells)
-        except:
-            pass
-        else:
-            self.fail('exception not occured for {}'
-                    .format(wrong_cells))
-
-    @data(*PROPER_CELLS_LIST)
-    def test_len(self, proper_cells):
-        cc = props.CellContainer(self.NAME, proper_cells)
-        self.assertEqual(len(cc), len(proper_cells))
+            self.assertEqual(len(cc), len(proper_cells))
 
     @unpack
     @data(
@@ -305,15 +306,17 @@ class TestProperty(unittest.TestCase):
     PROPER_VALUES = [1, 1., 'value', props.Cell('name')]
     WRONG_VALUES = [None]
     TYPE = props.Property
+    TYPE_NAME = 'variant'
 
     def test_constructor(self):
         for proper_value in self.PROPER_VALUES:
-            try:
-                cell = self.TYPE(self.name, proper_value)
-            except:
-                e = sys.exc_info()[0]
-                self.fail('constructor failed for name {} and value {} ({})'
-                          .format(self.name, proper_value, str(e)))
+            cell = self.TYPE(self.name, proper_value)
+            # try:
+            #     cell = self.TYPE(self.name, proper_value)
+            # except Exception as e:
+            #     # e = sys.exc_info()[0]
+            #     self.fail('constructor failed for name {} and value {} ({})'
+            #               .format(self.name, proper_value, e))
 
     def test_equal_constructor(self):
         for proper_value in self.PROPER_VALUES:
@@ -327,15 +330,14 @@ class TestProperty(unittest.TestCase):
             self.assertEqual(proper_value, cell.value)
 
     def test_wrong_value(self):
-        prop = self.TYPE(self.name, self.DEFAULT_VALUE)
         for wrong_value in self.WRONG_VALUES:
             try:
                 cell = self.TYPE(self.name, wrong_value)
             except ValueError:
                 pass
             else:
-                self.fail('no value raise for value = {}!'
-                        .format(wrong_value))
+                self.fail('<{}>: no value raise for value = {}!'
+                        .format(cell, wrong_value))
 
     def test_equal_asign_except(self):
         cell = self.TYPE(self.name, self.DEFAULT_VALUE)
@@ -349,6 +351,64 @@ class TestProperty(unittest.TestCase):
             else:
                 self.fail('not raised for {}'.format(wrong_value))
 
+    def test_writeable(self):
+        for v in self.PROPER_VALUES:
+            writeable_cell = self.TYPE(self.name, self.DEFAULT_VALUE, w=True)
+            self.assertEqual(writeable_cell.writeable, True)
+            try:
+                writeable_cell.value = v
+            except ValueError as e:
+                self.fail('should be writeable: {} := {}, exception: {}'
+                        .format(writeable_cell, v, e))
+            except Exception as e:
+                self.fail('unknown error: {}'.format(e))
+
+    def test_not_writeable(self):
+        for v in self.PROPER_VALUES:
+            not_writeable_cell = self.TYPE(self.name, self.DEFAULT_VALUE, w=False)
+            self.assertEqual(not_writeable_cell.writeable, False)
+            try:
+                not_writeable_cell.value = v
+            except RuntimeError as e:
+                pass  # ok
+            except Exception as e:
+                self.fail('unknown error: {}'.format(e))
+            else:
+                self.fail('Been able to write to not writeable cell!')
+
+    def test_readable(self):
+        readable_cell = self.TYPE(self.name, self.DEFAULT_VALUE, r=True)
+        self.assertEqual(readable_cell.readable, True)
+        try:
+            some_val = readable_cell.value
+        except RuntimeError as e:
+            self.fail('should be readable: {}'.format(e))
+        except Exception as e:
+            self.fail('unknown error: {}'.format(e))
+
+    def test_not_readable(self):
+        not_readable_cell = self.TYPE(self.name, self.DEFAULT_VALUE, r=False)
+        self.assertEqual(not_readable_cell.readable, False)
+        try:
+            some_val = not_readable_cell.value
+        except RuntimeError as e:
+            pass  # ok
+        except Exception as e:
+            self.fail('unknown error: {}'.format(e))
+        else:
+            self.fail('should not be readable')
+
+    def test_not_execitable(self):
+        not_executable_cell = self.TYPE(self.name, self.DEFAULT_VALUE)
+        try:
+            not_executable_cell()
+            self.assertEqual(not_readable_cell.executable, False)
+        except RuntimeError as e:
+            pass
+        except Exception as e:
+            self.fail('unknown error: {}'.format(e))
+        else:
+            self.fail('cell is not executable, should raise!')
 
 class TestPropertyInt(TestProperty):
 
@@ -356,6 +416,7 @@ class TestPropertyInt(TestProperty):
     WRONG_VALUES = [-1.1, 0.1, 1.1, 'str']
     DEFAULT_VALUE = 0
     TYPE = props.PropertyInt
+    TYPE_NAME = 'int'
 
     def test_equal_constructor(self):
         for proper_value in self.PROPER_VALUES:
@@ -387,6 +448,8 @@ class TestPropertyFloat(TestPropertyInt):
     WRONG_VALUES = ['str', [-2], (-3,2)]
     DEFAULT_VALUE = 0.
     TYPE = props.PropertyFloat
+    TYPE_NAME = 'float'
+
 
 class TestPropertyString(TestPropertyInt):
 
@@ -396,12 +459,14 @@ class TestPropertyString(TestPropertyInt):
     DEFAULT_VALUE = 's'
     TYPE = props.PropertyString
 
-
 @ddt
 class TestPropertyEnum(unittest.TestCase):
 
     NAME = 'name'
+    TYPE = props.PropertyEnum
+    TYPE_NAME = 'enum'
 
+    # todo refactor
     def setUp(self):
         self.good_vals = ['a', 'b', 'c']
         self.init_val = self.good_vals[0]
@@ -409,7 +474,6 @@ class TestPropertyEnum(unittest.TestCase):
         options = [props.Cell(v) for v in self.good_vals]
 
         self.enum = props.PropertyEnum(self.NAME, options, self.init_val)
-
 
     @data(
         [props.Cell('a')],
@@ -436,12 +500,13 @@ class TestPropertyEnum(unittest.TestCase):
             value = wrong_options[0].name
         except:
             value = None
+
         try:
             enum = props.PropertyEnum(self.NAME, wrong_options, value)
         except ValueError:
             pass
-        except Exception as e:
-            self.fail('Wrong exception!: {}, {}'.format(type(e), str(e)))
+        # except Exception as e:
+        #     self.fail('Wrong exception!: {}, {}'.format(type(e), str(e)))
         else:
             self.fail('No exception for name: {}, wrong opts: {}, val: {}'
                     .format(self.NAME, wrong_options, value))
@@ -496,53 +561,61 @@ class TestPropertyEnum(unittest.TestCase):
         except Exception as e:
             self.fail('failed to loop, exception raisd: {}'.format(str(e)))
 
+
+# TODO inherit from TestPropertyEnum ?
+@ddt
+class TestPropertyBool(TestProperty):
+
+    PROPER_VALUES = ['True', 'False']
+    WRONG_VALUES = [-1.1, 1, 'true']
+    DEFAULT_VALUE = True
+    TYPE = props.PropertyBool
+    TYPE_NAME = 'bool'
+
+    @data(True, False)
+    def test_additional_init_args(self, v):
+        try:
+            self.TYPE(self.name, v)
+        except Exception as e:
+            self.fail('cannot use {} as init argument for valu! exception:'
+                    .format(v, e))
+
 @ddt
 class TestPropertyUnion(unittest.TestCase):
 
     NAME = 'name'
-
-    @data(
+    TYPE = props.Union
+    TYPE_NAME = 'union'
+    PROPER_VALUES = [
         {
             'a': [props.Cell('a1'), props.Cell('a2')],
             'b': [props.Cell('b1')]
-        }
-    )
-    def test_constructor(self, type_map):
-        try:
+        }]
+
+    def test_constructor(self):
+        for type_map in self.PROPER_VALUES:
+            try:
+                union = props.Union(self.NAME, type_map)
+            except Exception as e:
+                self.fail('Exception occured for name: {}, type_map: {}, '
+                          ': {}'
+                          .format(self.NAME, type_maplue, str(e)))
+
+    def test_change_type(self):
+        for type_map in self.PROPER_VALUES:
             union = props.Union(self.NAME, type_map)
-        except Exception as e:
-            self.fail('Exception occured for name: {}, type_map: {}, '
-                      ': {}'
-                      .format(self.NAME, type_maplue, str(e)))
 
-    @data(
-        {
-            'a': [props.Cell('a1'), props.Cell('a2')],
-            'b': [props.Cell('b1')]
-        }
-    )
-    def test_change_type(self, type_map):
-        union = props.Union(self.NAME, type_map)
-
-        try:
-            for possible_type in type_map.keys():
-                union['type'].value = possible_type
-        except KeyError() as e:
-            self.fail('Exception occured for type {} : {}'
-                    .format(possible_type, e))
+            try:
+                for possible_type in type_map.keys():
+                    union['type'].value = possible_type
+            except KeyError() as e:
+                self.fail('Exception occured for type {} : {}'
+                        .format(possible_type, e))
 
 
-    @unpack
-    @data(
-        (
-            {
-                'a': [props.Cell('a1'), props.Cell('a2')],
-                'b': [props.Cell('b1')]
-            },
-            ['c', 'A', 'aa']
-        )
-    )
-    def test_change_type(self, type_map, bad_types):
+    def test_change_type(self):
+        type_map = self.PROPER_VALUES[0]
+        bad_types = ['c', 'A', 'aa']
         union = props.Union(self.NAME, type_map)
 
         for bad_type in bad_types:
