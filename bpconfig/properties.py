@@ -227,7 +227,6 @@ class PropertyInt(Property):
 
     @Property.value.setter
     def value(self, value):
-
         if not self.writeable:
             raise RuntimeError('is not writeable!'
                     .format(self.TYPE, self.name))
@@ -342,9 +341,7 @@ class Union(CellContainer):
     @property
     def _cells(self):
         cells = self._map[self.type]
-        cells_copy = deepcopy(cells)
-        # cells_copy = copy(cells)
-        # cells_copy = cells
+        cells_copy = copy(cells)
         cells_copy.append(self._type)
         return cells_copy
 

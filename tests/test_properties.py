@@ -581,7 +581,7 @@ class TestPropertyBool(TestProperty):
                     .format(v, e))
 
 @ddt
-class TestPropertyUnion(unittest.TestCase):
+class TestUnion(unittest.TestCase):
 
     NAME = 'name'
     TYPE = props.Union
@@ -626,6 +626,27 @@ class TestPropertyUnion(unittest.TestCase):
             else:
                 self.fail('Exception NOT occured for type {} : {}'
                         .format(possible_type, e))
+
+
+    def test_change_childs_value(self):
+        v1 = 1
+        propInt = props.PropertyInt('b', v1)
+        type_map = {
+                'a': [propInt]
+            }
+        union = props.Union(self.NAME, type_map)
+        # initial check
+        self.assertEqual(v1, union['b'].value)
+        self.assertEqual(propInt, union['b'])
+
+        v2 = 2
+        self.assertNotEqual(v1, v2)
+
+        # change and check
+        union['b'].value = v2
+        self.assertEqual(v2, union['b'].value)
+        self.assertEqual(propInt.value, union['b'].value)
+        self.assertEqual(propInt, union['b'])
 
 
 
