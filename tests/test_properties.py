@@ -298,6 +298,32 @@ class TestStrictCellContainer(unittest.TestCase):
         else:
             self.fail('Exception not occured for {}!'.format(cell))
 
+
+class TestLambda(unittest.TestCase):
+
+    def setUp(self):
+        self.lam1 = props.Lambda('name', lambda: 1)
+
+        self.x = -13
+        self.lam_x = props.Lambda('name', lambda: self.x)
+
+        self.prop = props.PropertyFloat('name', 1.3)
+        self.lam_prop = props.Lambda('name', lambda: self.prop.value)
+
+    def test_constructor(self):
+        pass
+
+    def test_lambda_1(self):
+        self.assertEqual(self.lam1.value, 1)
+
+    def test_lambda_and_attribute(self):
+        self.assertEqual(self.lam_x.value, self.x)
+
+    def test_lambda_and_prop(self):
+        self.assertEqual(self.lam_prop.value, self.prop.value)
+
+
+
 @ddt
 class TestProperty(unittest.TestCase):
 

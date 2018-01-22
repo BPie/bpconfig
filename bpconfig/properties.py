@@ -184,6 +184,9 @@ class Property(Cell):
             raise RuntimeError('{}({}) is not readable!'
                     .format(self.TYPE, self.name))
 
+        # if callable(self._value):
+        #     return self._value()
+
         return self._value
 
     @value.setter
@@ -205,6 +208,33 @@ class Property(Cell):
 
     def __str__(self):
         return "<{}({}): {}>".format(self.TYPE, self.name, self.value)
+
+
+class Lambda(Property):
+
+    def __init__(self, name, func, **kwargs):
+        if not callable(func):
+            raise ValueError('given func <{}> is not callable!'.format(func))
+
+        if func() is None:
+            raise ValueError('given func <{}> is does not return None!'.format(func))
+
+        Property.__init__(self, name, func, **kwargs)
+        self._w = False
+
+    @property
+    def executable(self):
+        return False
+
+
+    @Property.value.getter
+    def value(self):
+
+        if not self.readable:
+            raise RuntimeError('{}({}) is not readable!'
+                    .format(self.TYPE, self.name))
+
+        return self._value()
 
 
 class PropertyInt(Property):
