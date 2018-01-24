@@ -244,6 +244,19 @@ class TestCellContainer(unittest.TestCase):
                 self.fail('No exception while adding prop of name {}'
                         .format(cell.name))
 
+    def test_getattribute(self):
+        p1 = props.Property('p1', 1)
+        p2 = props.Property('p2', 2)
+        cc = props.CellContainer(self.NAME, [p1, p2])
+        self.assertEqual(cc.p1.value, p1.value)
+        self.assertEqual(cc.p2.value, p2.value)
+
+        p1.value = 3
+        p2.value = 4
+        self.assertEqual(cc.p1.value, p1.value)
+        self.assertEqual(cc.p2.value, p2.value)
+
+
 @ddt
 class TestStrictCellContainer(unittest.TestCase):
 
