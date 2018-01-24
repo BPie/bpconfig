@@ -103,21 +103,26 @@ class CellContainer(Cell):
         return len(self._cells)
 
     def __getitem__(self, name):
-        for cell in self._cells:
+        for cell in Cell.__getattribute__(self, '_cells'):
             if cell.name == name:
                 # print 'found cell named ', name
                 return cell
             # print 'NOT found cell named ', name
         raise KeyError('name {} not found'.format(name))
 
-    # def __getattribute__(self, attr):
-    #     try:
-    #         return Cell.__getattribute__(self, attr)
-    #     except AttributeError as e:
-    #         print 'NO attr named ', attr, e
-    #         return self.__getitem__(attr)
-    #     else:
-    #         print 'found attr named ', attr
+    def __getattribute__(self, attr):
+        try:
+            return Cell.__getattribute__(self, attr)
+        except AttributeError as e:
+            return self.__getitem__(attr)
+
+        # try:
+        #     return Cell.__getattribute__(self, attr)
+        # except AttributeError as e:
+        #     print 'NO attr named ', attr, e
+        #     return self.__getitem__(attr)
+        # else:
+        #     print 'found attr named ', attr
 
 
     def __setitem__(self, key, value):
@@ -372,6 +377,8 @@ class Union(CellContainer):
     def _cells(self):
         cells = self._map[self.type]
         cells_copy = copy(cells)
+        if not cells_copy:
+            cells_copy = []
         cells_copy.append(self._type)
         return cells_copy
 
