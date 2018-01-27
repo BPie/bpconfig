@@ -103,18 +103,53 @@ class CellContainer(Cell):
         return len(self._cells)
 
     def __getitem__(self, name):
-        for cell in Cell.__getattribute__(self, '_cells'):
-            if cell.name == name:
-                # print 'found cell named ', name
-                return cell
-            # print 'NOT found cell named ', name
+        if name.startswith('*'):
+            name = name.replace('*','',1)
+            private_access = True
+        else:
+            private_access = False
+
+        allCells = Cell.__getattribute__(self, '_cells')
+        cell = next((c for c in allCells if c.name==name), None)
+
+        if isinstance(cell, Property) and not private_access:
+            return cell.value
+        elif isinstance(cell, Cell):
+            return cell
         raise KeyError('name {} not found'.format(name))
 
-    def __getattribute__(self, attr):
+    def __setitem__(self, name, value):
+        if name.startswith('*'):
+            name = name.replace('*','',1)
+            private_access = True
+        else:
+            private_access = False
+
+        allCells = Cell.__getattribute__(self, '_cells')
+        cell = next((c for c in allCells if c.name==name), None)
+
+        if private_access:
+            raise NotImplementedError('cannot change instance for key')
+        elif isinstance(cell, Cell):
+            cell.value = value
+        elif cell:
+            raise KeyError('prop with name {} is not a Cell'.format(name))
+        else:
+            raise KeyError('prop with name {} not found'.format(name))
+
+        # self.__getattr__(name).value = value
+
+    # def __getitem__(self, name):
+    #     for cell in Cell.__getattribute__(self, '_cells'):
+    #         if cell.name == name:
+    #             return cell
+    #     raise KeyError('name {} not found'.format(name))
+
+    def __getattribute__(self, name):
         try:
-            return Cell.__getattribute__(self, attr)
-        except AttributeError as e:
-            return self.__getitem__(attr)
+            return Cell.__getattribute__(self, name)
+        except AttributeError:
+            return self.__getitem__(name)
 
         # try:
         #     return Cell.__getattribute__(self, attr)
@@ -124,9 +159,16 @@ class CellContainer(Cell):
         # else:
         #     print 'found attr named ', attr
 
-
-    def __setitem__(self, key, value):
-        self.__getattr__(key).value = value
+    def __setattr__(self, name, value):
+        if name in self.__dict__:
+            # print 'invoked 1 on {}, {}'.format(name,value)
+            Cell.__setattr__(self, name, value)
+        elif hasattr(self, '_cells') and name in self.keys():
+            # print 'invoked 2 on {}, {}'.format(name,value)
+            self.__setitem__(name, value)
+        else:
+            # print 'invoked 3 on {}, {}'.format(name,value)
+            Cell.__setattr__(self, name, value)
 
     def keys(self):
         return [cell.name for cell in self._cells]

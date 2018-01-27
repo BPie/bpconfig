@@ -37,7 +37,12 @@ class State(object):
     ''' Gets current cell'''
     @property
     def current(self):
-        return reduce(getitem, self._pos[1:], self._container)
+        # becouse last one can be a cell, we need to make sure we get the item,
+        # not it's value due to CellContainer's 'get', so we get it
+        # with _ added (check CellContainer.__getitem__)
+        return reduce(getitem,
+                ('*'+pos for pos in self._pos[1:]),
+                self._container)
 
     ''' Gets current cell's parent'''
     @property
@@ -69,10 +74,10 @@ class State(object):
     def go_next(self, name):
         try:
             new_cell = self.current[name]
-        except:
+        except KeyError:
             raise RuntimeWarning('wrong child name: {}'.format(name))
         else:
-            self._pos.append(new_cell.name)
+            self._pos.append(name)
 
     ''' Go to previous cell (parent) '''
     def go_previous(self):

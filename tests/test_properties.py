@@ -149,7 +149,7 @@ class TestCellContainer(unittest.TestCase):
         cc = props.CellContainer(self.NAME, cells)
         for cell in cells:
             key = cell.name
-            self.assertEqual(cell, cc[key])
+            self.assertEqual(cell, cc['*'+key])
 
     def test_not_contains_own_name(self):
         names = ['a', 'b', 'c', 'd']
@@ -174,15 +174,15 @@ class TestCellContainer(unittest.TestCase):
         p2 = props.Property('p2', 2)
         cells = [p1, p2]
         cc = props.CellContainer(self.NAME, cells)
-        self.assertEqual(cc['p1'].value, 1)
-        self.assertEqual(cc['p2'].value, 2)
+        self.assertEqual(cc['p1'], 1)
+        self.assertEqual(cc['p2'], 2)
 
     def test_prop_value_append(self):
         cc = props.CellContainer(self.NAME, [])
 
         p = props.Property('p', 1)
         cc.append(p)
-        self.assertEqual(cc['p'].value, 1)
+        self.assertEqual(cc['p'], 1)
 
     def test_prop_value_changed(self):
         p1 = props.Property('p1', 1)
@@ -190,25 +190,86 @@ class TestCellContainer(unittest.TestCase):
         cells = [p1, p2]
         cc = props.CellContainer(self.NAME, cells)
         p2.value = 22
-        self.assertEqual(cc['p1'].value, 1)
-        self.assertEqual(cc['p2'].value, 22)
+        self.assertEqual(cc['p1'], 1)
+        self.assertEqual(cc['p2'], 22)
 
-        cc['p1'].value = 11
+    def test_prop_value_change_inside(self):
+        p1 = props.Property('p1', 1)
+        p2 = props.Property('p2', 2)
+        cells = [p1, p2]
+        cc = props.CellContainer(self.NAME, cells)
+        cc['p1'] = 11
         self.assertEqual(p1.value, 11)
-        self.assertEqual(p2.value, 22)
+        self.assertEqual(p2.value, 2)
+
+    def test_prop_value_changed_attr(self):
+        p1 = props.Property('p1', 1)
+        p2 = props.Property('p2', 2)
+        cells = [p1, p2]
+        cc = props.CellContainer(self.NAME, cells)
+        p2.value = 22
+        self.assertEqual(cc.p1, 1)
+        self.assertEqual(cc.p2, 22)
+
+    def test_prop_value_change_inside_attr(self):
+        p1 = props.Property('p1', 1)
+        p2 = props.Property('p2', 2)
+        cells = [p1, p2]
+        cc = props.CellContainer(self.NAME, cells)
+        cc.p1 = 11
+        self.assertEqual(p1.value, 11)
+        self.assertEqual(p2.value, 2)
+
+    def test_prop_value_changed_priv(self):
+        p1 = props.Property('p1', 1)
+        p2 = props.Property('p2', 2)
+        cells = [p1, p2]
+        cc = props.CellContainer(self.NAME, cells)
+        p2.value = 22
+        self.assertEqual(cc['*p1'].value, 1)
+        self.assertEqual(cc['*p2'].value, 22)
+
+    def test_prop_value_change_inside_priv(self):
+        p1 = props.Property('p1', 1)
+        p2 = props.Property('p2', 2)
+        cells = [p1, p2]
+        cc = props.CellContainer(self.NAME, cells)
+        cc['*p1'].value = 11
+        self.assertEqual(p1.value, 11)
+        self.assertEqual(p2.value, 2)
 
     def test_prop_appended_value_changed(self):
         cc = props.CellContainer(self.NAME, [])
-
         p = props.Property('p', 1)
         cc.append(p)
-        self.assertEqual(cc['p'].value, 1)
 
-        p.value = 11
-        self.assertEqual(cc['p'].value, 11)
+        self.assertEqual(cc['p'], 1)
+        p.value = 2
+        self.assertEqual(cc['p'], 2)
 
-        cc['p'].value = 111
-        self.assertEqual(p.value, 111)
+    def test_prop_value_changed_getitem_priv(self):
+        cc = props.CellContainer(self.NAME, [])
+        p = props.Property('p', 1)
+        cc.append(p)
+
+        cc['*p'].value = 3
+        self.assertEqual(p.value, 3)
+
+    def test_prop_value_changed_getitem_value(self):
+        cc = props.CellContainer(self.NAME, [])
+        p = props.Property('p', 1)
+        cc.append(p)
+
+        cc['p'] = 4
+        self.assertEqual(p.value, 4)
+
+    def test_prop_value_changed_attr_value(self):
+        cc = props.CellContainer(self.NAME, [])
+        p = props.Property('p', 1)
+        cc.append(p)
+
+        cc.p = 5
+        self.assertEqual(p.value, 5)
 
     def test_append(self):
         sc_names = ['1', '2']
@@ -244,17 +305,30 @@ class TestCellContainer(unittest.TestCase):
                 self.fail('No exception while adding prop of name {}'
                         .format(cell.name))
 
-    def test_getattribute(self):
+    def test_getattribute_value(self):
         p1 = props.Property('p1', 1)
         p2 = props.Property('p2', 2)
         cc = props.CellContainer(self.NAME, [p1, p2])
-        self.assertEqual(cc.p1.value, p1.value)
-        self.assertEqual(cc.p2.value, p2.value)
+        self.assertEqual(cc.p1, p1.value)
+        self.assertEqual(cc.p2, p2.value)
 
         p1.value = 3
         p2.value = 4
-        self.assertEqual(cc.p1.value, p1.value)
-        self.assertEqual(cc.p2.value, p2.value)
+        self.assertEqual(cc.p1, p1.value)
+        self.assertEqual(cc.p2, p2.value)
+
+
+    def test_getattribute_attr(self):
+        p1 = props.Property('p1', 1)
+        p2 = props.Property('p2', 2)
+        cc = props.CellContainer(self.NAME, [p1, p2])
+        self.assertEqual(cc['*p1'], p1)
+        self.assertEqual(cc['*p2'], p2)
+
+        p1.value = 3
+        p2.value = 4
+        self.assertEqual(cc['*p1'], p1)
+        self.assertEqual(cc['*p2'], p2)
 
 
 @ddt
@@ -659,7 +733,7 @@ class TestUnion(unittest.TestCase):
 
         for bad_type in bad_types:
             try:
-                union['type'].value = bad_type
+                union.type = bad_type
             except ValueError as e:
                 pass
             else:
@@ -675,17 +749,17 @@ class TestUnion(unittest.TestCase):
             }
         union = props.Union(self.NAME, type_map)
         # initial check
-        self.assertEqual(v1, union['b'].value)
-        self.assertEqual(propInt, union['b'])
+        self.assertEqual(v1, union.b)
+        self.assertEqual(propInt, union['*b'])
 
         v2 = 2
         self.assertNotEqual(v1, v2)
 
         # change and check
-        union['b'].value = v2
-        self.assertEqual(v2, union['b'].value)
-        self.assertEqual(propInt.value, union['b'].value)
-        self.assertEqual(propInt, union['b'])
+        union.b = v2
+        self.assertEqual(v2, union.b)
+        self.assertEqual(propInt.value, union.b)
+        self.assertEqual(propInt, union['*b'])
 
 
 
