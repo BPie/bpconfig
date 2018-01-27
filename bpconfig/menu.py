@@ -9,12 +9,13 @@ from collections import OrderedDict, defaultdict, deque
 from operator import getitem
 from blessed import Terminal
 
-from .debug import Debug, close_all_processes, DummyDebug
 from .state import State
 from .printer import Printer
 from .input import InputManager
 from .shorts import ShortMapper
 from .actions import ActionManager
+
+from . import debug as deb
 from . import properties as props
 
 
@@ -24,9 +25,9 @@ class Menu(object):
         self._t = Terminal()
 
         if debug:
-            self._debug = Debug()
+            self._debug = deb.Debug()
         else:
-            self._debug = DummyDebug()
+            self._debug = deb.DummyDebug()
 
         self._actions = ActionManager(self._debug)
         self._state = State(container, self._actions, self._debug)
@@ -126,7 +127,7 @@ if __name__ == '__main__':
 
     root_container = _test_get_root()
     menu = Menu(root_container, False)
-    atexit.register(close_all_processes)
+    atexit.register(deb.close_all_processes)
 
     menu.run()
     # try:
