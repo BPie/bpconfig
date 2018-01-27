@@ -22,13 +22,19 @@ def close_all_processes():
     for proc in PROCESSES:
         proc.kill()
 
+class DummyDebug:
+
+    def msg(self, message):
+        pass
 
 class Debug:
+
     def __init__(self, path=PIPE_PATH):
         self._path = path
 
         if not os.path.exists(self._path):
             os.mkfifo(self._path)
+        self.show_window()
 
     def show_window(self):
         proc = Popen(['xterm', '-e', 'tail -f %s' % self._path])
@@ -36,7 +42,6 @@ class Debug:
 
 
     def msg(self, message):
-
         with open(self._path, 'w') as p:
             p.write('{}\n'.format(message))
 

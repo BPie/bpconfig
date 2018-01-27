@@ -8,8 +8,6 @@ from collections import OrderedDict, defaultdict, deque
 from operator import getitem
 from blessed import Terminal
 
-from .misc import Debug
-
 from . import properties as props
 from . import style
 

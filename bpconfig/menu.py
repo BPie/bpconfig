@@ -9,7 +9,7 @@ from collections import OrderedDict, defaultdict, deque
 from operator import getitem
 from blessed import Terminal
 
-from .misc import Debug, close_all_processes
+from .debug import Debug, close_all_processes, DummyDebug
 from .state import State
 from .printer import Printer
 from .input import InputManager
@@ -23,9 +23,10 @@ class Menu(object):
     def __init__(self, container, debug=False):
         self._t = Terminal()
 
-        self._debug = Debug()
         if debug:
-            self._debug.show_window()
+            self._debug = Debug()
+        else:
+            self._debug = DummyDebug()
 
         self._actions = ActionManager(self._debug)
         self._state = State(container, self._actions, self._debug)
@@ -124,7 +125,7 @@ def _test_get_root():
 if __name__ == '__main__':
 
     root_container = _test_get_root()
-    menu = Menu(root_container, True)
+    menu = Menu(root_container, False)
     atexit.register(close_all_processes)
 
     menu.run()
