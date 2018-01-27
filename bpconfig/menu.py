@@ -23,7 +23,9 @@ class Menu(object):
     def __init__(self, container, debug=False):
         self._t = Terminal()
 
-        self._debug = Debug(debug=debug)
+        self._debug = Debug()
+        if debug:
+            self._debug.show_window()
 
         self._actions = ActionManager(self._debug)
         self._state = State(container, self._actions, self._debug)

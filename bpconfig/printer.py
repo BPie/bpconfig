@@ -1,4 +1,4 @@
-#encoding = utf-8
+#encoding=utf-8
 from __future__ import absolute_import
 from __future__ import print_function
 
@@ -7,6 +7,8 @@ import re
 from collections import OrderedDict, defaultdict, deque
 from operator import getitem
 from blessed import Terminal
+
+from .misc import Debug
 
 from . import properties as props
 from . import style
@@ -38,8 +40,8 @@ class Printer:
         # need to add info about short if not found in name
         if not re.findall(short, name, flags=re.IGNORECASE):
             name = '[{}]: '.format(short) + name
+
         return re.sub(short, f(short), name, 1, re.IGNORECASE)
-        # return name.lower().replace(short.lower(), f(short), 1)
 
     def _print(self):
         self._clear()
@@ -130,8 +132,7 @@ class Printer:
     def _print_option(self, cell, short, style=None):
         msg = ''
         attrstr = lambda n,t: self._get_styled_attr(cell, n, t)
-        name = attrstr('name', '{}')
-        marked = self._mark_short_in_name(name, short)
+        marked = self._mark_short_in_name(cell.name, short)
         msg += self._t.rjust(attrstr('type', '[{}] '), width=15)
         msg += self._t.center(marked, width=10)
         msg += self._t.ljust(attrstr('value', '= {}'), width=15)
