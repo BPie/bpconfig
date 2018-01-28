@@ -1,4 +1,4 @@
-![figPie](fig.jpg)
+![figPie](figPie/fig.jpg)
 
 
 # what it will be
