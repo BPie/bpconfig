@@ -120,7 +120,11 @@ def _test_get_root():
             u
             ])
     cont_1 = props.CellContainer('lvl1', [props.Cell('1c2'), cont_2])
-    cont_root = props.CellContainer('root', [props.Cell('rc1'), cont_1])
+    cont_root = props.CellContainer('root', [
+            props.Cell('rc1'),
+            props.Lambda('lambda', lambda: 1),
+            cont_1,
+        ])
     return cont_root
 
 

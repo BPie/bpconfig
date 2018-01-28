@@ -1,4 +1,4 @@
-# encoding=utf-8
+#encoding=utf-8
 
 from collections import OrderedDict
 from copy import copy, deepcopy
@@ -419,8 +419,12 @@ class Union(CellContainer):
     def _cells(self):
         cells = self._map[self.type]
         cells_copy = copy(cells)
+
         if not cells_copy:
             cells_copy = []
+        elif not isinstance(cells_copy, list):
+            cells_copy = [cells_copy]
+
         cells_copy.append(self._type)
         return cells_copy
 
