@@ -5,6 +5,7 @@ from __future__ import print_function
 import sys
 import re
 import atexit
+
 from collections import OrderedDict, defaultdict, deque
 from operator import getitem
 from blessed import Terminal

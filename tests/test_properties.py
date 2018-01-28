@@ -2,7 +2,7 @@
 
 import sys
 import unittest
-import bpconfig.properties as props
+import figpie as fp
 from itertools import product
 from ddt import ddt, data, file_data, unpack
 
@@ -13,15 +13,15 @@ class TestCell(unittest.TestCase):
     TYPE_NAME='cell'
     def test_proper_name(self):
         name = 'name'
-        cell = props.Cell('name')
+        cell = fp.Cell('name')
         self.assertEqual(name, cell.name)
 
     @data(123, 123.1, ['a','b'])
     def test_wrong_name(self, name):
-        self.assertRaises(ValueError, lambda n: props.Cell(n), name)
+        self.assertRaises(ValueError, lambda n: fp.Cell(n), name)
 
     def test_type(self):
-        cell = props.Cell('name')
+        cell = fp.Cell('name')
         self.assertEqual(cell.type, self.TYPE_NAME)
         self.assertEqual(cell.TYPE, self.TYPE_NAME)
 
@@ -36,21 +36,21 @@ class TestAction(unittest.TestCase):
         def foo():
             return ret_val
 
-        a = props.Action('name', foo)
+        a = fp.Action('name', foo)
         self.assertEqual(a(), ret_val)
 
     def test_action_as_lambda(self):
-        a = props.Action('name', lambda: 1)
+        a = fp.Action('name', lambda: 1)
         self.assertEqual(a(), 1)
 
 
     @data(1, None, 's')
     def test_action_exception(self, n_call):
         assert(not callable(n_call))
-        self.assertRaises(RuntimeError, lambda: props.Action('name', n_call))
+        self.assertRaises(RuntimeError, lambda: fp.Action('name', n_call))
 
     def test_is_callable(self):
-        a = props.Action('name', lambda: 1)
+        a = fp.Action('name', lambda: 1)
         self.assertTrue(callable(a))
 
     @unittest.skip('not implemented')
@@ -65,26 +65,26 @@ class TestCellContainer(unittest.TestCase):
     DEFAULT_CELLS = None
     PROPER_CELLS_LIST = [
             [],
-            [props.Cell('a'), props.Cell('b')],
-            [props.Property('plain', 1),
-                props.PropertyFloat('float', 1.3),
-                props.PropertyInt('int', 1),
-                props.PropertyString('string', 'v'),
-                props.CellContainer('container')]]
+            [fp.Cell('a'), fp.Cell('b')],
+            [fp.Property('plain', 1),
+                fp.PropertyFloat('float', 1.3),
+                fp.PropertyInt('int', 1),
+                fp.PropertyString('string', 'v'),
+                fp.CellContainer('container')]]
 
     WRONG_CELLS_LIST = [
             [1],
             ['abc'],
-            [props.Cell('a'), props.Cell('a')],
-            [props.Cell('a'), props.CellContainer('a')],
-            [props.Cell('a'), 1]]
+            [fp.Cell('a'), fp.Cell('a')],
+            [fp.Cell('a'), fp.CellContainer('a')],
+            [fp.Cell('a'), 1]]
 
     TYPE_NAME = 'container'
 
     def test_constructor_proper(self):
         for proper_cells in self.PROPER_CELLS_LIST:
             try:
-                cc = props.CellContainer(self.NAME, proper_cells)
+                cc = fp.CellContainer(self.NAME, proper_cells)
             except:
                 self.fail('exception occured for {}!'
                         .format(proper_cells))
@@ -92,7 +92,7 @@ class TestCellContainer(unittest.TestCase):
     def test_constructor_wrong(self):
         for wrong_cells in self.WRONG_CELLS_LIST:
             try:
-                cc = props.CellContainer(self.NAME, wrong_cells)
+                cc = fp.CellContainer(self.NAME, wrong_cells)
             except:
                 pass
             else:
@@ -101,7 +101,7 @@ class TestCellContainer(unittest.TestCase):
 
     def test_len(self):
         for proper_cells in self.PROPER_CELLS_LIST:
-            cc = props.CellContainer(self.NAME, proper_cells)
+            cc = fp.CellContainer(self.NAME, proper_cells)
             self.assertEqual(len(cc), len(proper_cells))
 
     @unpack
@@ -110,8 +110,8 @@ class TestCellContainer(unittest.TestCase):
         { 'key': 'a', 'names': ['a']}
     )
     def test_getitem(self, key, names):
-        cells = [props.Cell(name) for name in names]
-        cc = props.CellContainer(self.NAME, cells)
+        cells = [fp.Cell(name) for name in names]
+        cc = fp.CellContainer(self.NAME, cells)
         self.assertEqual(cc[key].name, key)
 
     @unpack
@@ -120,8 +120,8 @@ class TestCellContainer(unittest.TestCase):
         { 'key': 'a', 'names': ['a']}
     )
     def test_contains(self, key, names):
-        cells = [props.Cell(name) for name in names]
-        cc = props.CellContainer(self.NAME, cells)
+        cells = [fp.Cell(name) for name in names]
+        cc = fp.CellContainer(self.NAME, cells)
         self.assertTrue(cc.contains(key))
 
     @unpack
@@ -130,8 +130,8 @@ class TestCellContainer(unittest.TestCase):
         { 'key': 'A', 'names': ['a']}
     )
     def test_getitem_assert(self, key, names):
-        cells = [props.Cell(name) for name in names]
-        cc = props.CellContainer(self.NAME, cells)
+        cells = [fp.Cell(name) for name in names]
+        cc = fp.CellContainer(self.NAME, cells)
         self.assertRaises(KeyError, lambda: cc[key])
 
     @unpack
@@ -140,107 +140,107 @@ class TestCellContainer(unittest.TestCase):
         { 'key': 'A', 'names': ['a']}
     )
     def test_not_contains(self, key, names):
-        cells = [props.Cell(name) for name in names]
-        cc = props.CellContainer(self.NAME, cells)
+        cells = [fp.Cell(name) for name in names]
+        cc = fp.CellContainer(self.NAME, cells)
         self.assertFalse(cc.contains(key))
 
     def test_getitem_same(self):
-        cells = [props.Cell('cell'), props.Property('prop', 1)]
-        cc = props.CellContainer(self.NAME, cells)
+        cells = [fp.Cell('cell'), fp.Property('prop', 1)]
+        cc = fp.CellContainer(self.NAME, cells)
         for cell in cells:
             key = cell.name
             self.assertEqual(cell, cc['*'+key])
 
     def test_not_contains_own_name(self):
         names = ['a', 'b', 'c', 'd']
-        cells = [ props.Cell(name) for name in names ]
-        cc = props.CellContainer('name', cells)
+        cells = [ fp.Cell(name) for name in names ]
+        cc = fp.CellContainer('name', cells)
         self.assertFalse(cc.contains('name'))
 
     def test_keys(self):
         names = ['a', 'z', '111', 'b', 'lorem ipsum']
-        cells = [props.Cell(name) for name in names]
-        cc = props.CellContainer(self.NAME, cells)
+        cells = [fp.Cell(name) for name in names]
+        cc = fp.CellContainer(self.NAME, cells)
         self.assertEqual(cc.keys(), names)
 
     def test_values(self):
         names = ['a', 'z', '111', 'b', 'lorem ipsum']
-        cells = [props.Cell(name) for name in names]
-        cc = props.CellContainer(self.NAME, cells)
+        cells = [fp.Cell(name) for name in names]
+        cc = fp.CellContainer(self.NAME, cells)
         self.assertEqual(cc.values(), cells)
 
     def test_prop_value(self):
-        p1 = props.Property('p1', 1)
-        p2 = props.Property('p2', 2)
+        p1 = fp.Property('p1', 1)
+        p2 = fp.Property('p2', 2)
         cells = [p1, p2]
-        cc = props.CellContainer(self.NAME, cells)
+        cc = fp.CellContainer(self.NAME, cells)
         self.assertEqual(cc['p1'], 1)
         self.assertEqual(cc['p2'], 2)
 
     def test_prop_value_append(self):
-        cc = props.CellContainer(self.NAME, [])
+        cc = fp.CellContainer(self.NAME, [])
 
-        p = props.Property('p', 1)
+        p = fp.Property('p', 1)
         cc.append(p)
         self.assertEqual(cc['p'], 1)
 
     def test_prop_value_changed(self):
-        p1 = props.Property('p1', 1)
-        p2 = props.Property('p2', 2)
+        p1 = fp.Property('p1', 1)
+        p2 = fp.Property('p2', 2)
         cells = [p1, p2]
-        cc = props.CellContainer(self.NAME, cells)
+        cc = fp.CellContainer(self.NAME, cells)
         p2.value = 22
         self.assertEqual(cc['p1'], 1)
         self.assertEqual(cc['p2'], 22)
 
     def test_prop_value_change_inside(self):
-        p1 = props.Property('p1', 1)
-        p2 = props.Property('p2', 2)
+        p1 = fp.Property('p1', 1)
+        p2 = fp.Property('p2', 2)
         cells = [p1, p2]
-        cc = props.CellContainer(self.NAME, cells)
+        cc = fp.CellContainer(self.NAME, cells)
         cc['p1'] = 11
         self.assertEqual(p1.value, 11)
         self.assertEqual(p2.value, 2)
 
     def test_prop_value_changed_attr(self):
-        p1 = props.Property('p1', 1)
-        p2 = props.Property('p2', 2)
+        p1 = fp.Property('p1', 1)
+        p2 = fp.Property('p2', 2)
         cells = [p1, p2]
-        cc = props.CellContainer(self.NAME, cells)
+        cc = fp.CellContainer(self.NAME, cells)
         p2.value = 22
         self.assertEqual(cc.p1, 1)
         self.assertEqual(cc.p2, 22)
 
     def test_prop_value_change_inside_attr(self):
-        p1 = props.Property('p1', 1)
-        p2 = props.Property('p2', 2)
+        p1 = fp.Property('p1', 1)
+        p2 = fp.Property('p2', 2)
         cells = [p1, p2]
-        cc = props.CellContainer(self.NAME, cells)
+        cc = fp.CellContainer(self.NAME, cells)
         cc.p1 = 11
         self.assertEqual(p1.value, 11)
         self.assertEqual(p2.value, 2)
 
     def test_prop_value_changed_priv(self):
-        p1 = props.Property('p1', 1)
-        p2 = props.Property('p2', 2)
+        p1 = fp.Property('p1', 1)
+        p2 = fp.Property('p2', 2)
         cells = [p1, p2]
-        cc = props.CellContainer(self.NAME, cells)
+        cc = fp.CellContainer(self.NAME, cells)
         p2.value = 22
         self.assertEqual(cc['*p1'].value, 1)
         self.assertEqual(cc['*p2'].value, 22)
 
     def test_prop_value_change_inside_priv(self):
-        p1 = props.Property('p1', 1)
-        p2 = props.Property('p2', 2)
+        p1 = fp.Property('p1', 1)
+        p2 = fp.Property('p2', 2)
         cells = [p1, p2]
-        cc = props.CellContainer(self.NAME, cells)
+        cc = fp.CellContainer(self.NAME, cells)
         cc['*p1'].value = 11
         self.assertEqual(p1.value, 11)
         self.assertEqual(p2.value, 2)
 
     def test_prop_appended_value_changed(self):
-        cc = props.CellContainer(self.NAME, [])
-        p = props.Property('p', 1)
+        cc = fp.CellContainer(self.NAME, [])
+        p = fp.Property('p', 1)
         cc.append(p)
 
         self.assertEqual(cc['p'], 1)
@@ -248,24 +248,24 @@ class TestCellContainer(unittest.TestCase):
         self.assertEqual(cc['p'], 2)
 
     def test_prop_value_changed_getitem_priv(self):
-        cc = props.CellContainer(self.NAME, [])
-        p = props.Property('p', 1)
+        cc = fp.CellContainer(self.NAME, [])
+        p = fp.Property('p', 1)
         cc.append(p)
 
         cc['*p'].value = 3
         self.assertEqual(p.value, 3)
 
     def test_prop_value_changed_getitem_value(self):
-        cc = props.CellContainer(self.NAME, [])
-        p = props.Property('p', 1)
+        cc = fp.CellContainer(self.NAME, [])
+        p = fp.Property('p', 1)
         cc.append(p)
 
         cc['p'] = 4
         self.assertEqual(p.value, 4)
 
     def test_prop_value_changed_attr_value(self):
-        cc = props.CellContainer(self.NAME, [])
-        p = props.Property('p', 1)
+        cc = fp.CellContainer(self.NAME, [])
+        p = fp.Property('p', 1)
         cc.append(p)
 
         cc.p = 5
@@ -273,12 +273,12 @@ class TestCellContainer(unittest.TestCase):
 
     def test_append(self):
         sc_names = ['1', '2']
-        starting_cells = [props.Cell(name) for name in sc_names]
+        starting_cells = [fp.Cell(name) for name in sc_names]
 
         ac_names = ['3', '4', self.NAME]
-        cells_to_append = [props.Cell(name) for name in ac_names]
+        cells_to_append = [fp.Cell(name) for name in ac_names]
 
-        cc = props.CellContainer(self.NAME, starting_cells)
+        cc = fp.CellContainer(self.NAME, starting_cells)
         for cell in cells_to_append:
             cc.append(cell)
 
@@ -287,13 +287,13 @@ class TestCellContainer(unittest.TestCase):
 
     def test_append_fails(self):
         sc_names = ['1', '2']
-        starting_cells = [props.Cell(name) for name in sc_names]
+        starting_cells = [fp.Cell(name) for name in sc_names]
 
         from copy import deepcopy
         ac_names = deepcopy(sc_names)
-        cells_to_append = [props.Cell(name) for name in ac_names]
+        cells_to_append = [fp.Cell(name) for name in ac_names]
 
-        cc = props.CellContainer(self.NAME, starting_cells)
+        cc = fp.CellContainer(self.NAME, starting_cells)
         for cell in cells_to_append:
             try:
                 cc.append(cell)
@@ -306,9 +306,9 @@ class TestCellContainer(unittest.TestCase):
                         .format(cell.name))
 
     def test_getattribute_value(self):
-        p1 = props.Property('p1', 1)
-        p2 = props.Property('p2', 2)
-        cc = props.CellContainer(self.NAME, [p1, p2])
+        p1 = fp.Property('p1', 1)
+        p2 = fp.Property('p2', 2)
+        cc = fp.CellContainer(self.NAME, [p1, p2])
         self.assertEqual(cc.p1, p1.value)
         self.assertEqual(cc.p2, p2.value)
 
@@ -319,9 +319,9 @@ class TestCellContainer(unittest.TestCase):
 
 
     def test_getattribute_attr(self):
-        p1 = props.Property('p1', 1)
-        p2 = props.Property('p2', 2)
-        cc = props.CellContainer(self.NAME, [p1, p2])
+        p1 = fp.Property('p1', 1)
+        p2 = fp.Property('p2', 2)
+        cc = fp.CellContainer(self.NAME, [p1, p2])
         self.assertEqual(cc['*p1'], p1)
         self.assertEqual(cc['*p2'], p2)
 
@@ -336,24 +336,24 @@ class TestStrictCellContainer(unittest.TestCase):
 
     @data(
         [],
-        [props.Cell('a')],
-        [props.Cell('a'), props.Cell('b')]
+        [fp.Cell('a')],
+        [fp.Cell('a'), fp.Cell('b')]
     )
     def test_constructor(self, cells):
         try:
-            scc = props.StrictCellContainer('n', cells)
+            scc = fp.StrictCellContainer('n', cells)
         except Exception as e:
             self.fail('Exception: {}'.format(str(e)))
 
     @data(
-        [props.Cell('a'), props.Cell('a')],
-        [props.Cell('a'), props.Property('b', 1)],
-        [props.Property('a', 1)],
-        [props.PropertyInt('a', 2)]
+        [fp.Cell('a'), fp.Cell('a')],
+        [fp.Cell('a'), fp.Property('b', 1)],
+        [fp.Property('a', 1)],
+        [fp.PropertyInt('a', 2)]
     )
     def test_constructor_exception(self, cells):
         try:
-            scc = props.StrictCellContainer('n', cells)
+            scc = fp.StrictCellContainer('n', cells)
         except ValueError:
             pass
         except Exception as e:
@@ -361,21 +361,21 @@ class TestStrictCellContainer(unittest.TestCase):
         else:
             self.fail('Exception not occured for {}!'.format(cells))
 
-    @data(props.Cell('a'))
+    @data(fp.Cell('a'))
     def test_append(self, cell):
-        scc = props.StrictCellContainer('n', [props.Cell('x')])
+        scc = fp.StrictCellContainer('n', [fp.Cell('x')])
         try:
             scc.append(cell)
         except Exception as e:
             self.fail('Exception: {}'.format(str(e)))
 
     @data(
-        props.Cell('x'),
-        props.Property('b', 1),
-        props.PropertyInt('a', 2)
+        fp.Cell('x'),
+        fp.Property('b', 1),
+        fp.PropertyInt('a', 2)
     )
     def test_append_exception(self, cell):
-        scc = props.StrictCellContainer('n', [props.Cell('x')])
+        scc = fp.StrictCellContainer('n', [fp.Cell('x')])
         try:
             scc.append(cell)
         except ValueError:
@@ -389,13 +389,13 @@ class TestStrictCellContainer(unittest.TestCase):
 class TestLambda(unittest.TestCase):
 
     def setUp(self):
-        self.lam1 = props.Lambda('name', lambda: 1)
+        self.lam1 = fp.Lambda('name', lambda: 1)
 
         self.x = -13
-        self.lam_x = props.Lambda('name', lambda: self.x)
+        self.lam_x = fp.Lambda('name', lambda: self.x)
 
-        self.prop = props.PropertyFloat('name', 1.3)
-        self.lam_prop = props.Lambda('name', lambda: self.prop.value)
+        self.prop = fp.PropertyFloat('name', 1.3)
+        self.lam_prop = fp.Lambda('name', lambda: self.prop.value)
 
     def test_constructor(self):
         pass
@@ -416,9 +416,9 @@ class TestProperty(unittest.TestCase):
 
     name = 'name'
     DEFAULT_VALUE = 0
-    PROPER_VALUES = [1, 1., 'value', props.Cell('name')]
+    PROPER_VALUES = [1, 1., 'value', fp.Cell('name')]
     WRONG_VALUES = [None]
-    TYPE = props.Property
+    TYPE = fp.Property
     TYPE_NAME = 'variant'
 
     def test_constructor(self):
@@ -528,7 +528,7 @@ class TestPropertyInt(TestProperty):
     PROPER_VALUES = [-1, 0, 1,1000, '1']
     WRONG_VALUES = [-1.1, 0.1, 1.1, 'str']
     DEFAULT_VALUE = 0
-    TYPE = props.PropertyInt
+    TYPE = fp.PropertyInt
     TYPE_NAME = 'int'
 
     def test_equal_constructor(self):
@@ -560,7 +560,7 @@ class TestPropertyFloat(TestPropertyInt):
     PROPER_VALUES = [-1., 0., 1.1,100., 1000.2, '2', '-4', '3.5', '-1.4']
     WRONG_VALUES = ['str', [-2], (-3,2)]
     DEFAULT_VALUE = 0.
-    TYPE = props.PropertyFloat
+    TYPE = fp.PropertyFloat
     TYPE_NAME = 'float'
 
 
@@ -570,13 +570,13 @@ class TestPropertyString(TestPropertyInt):
             u'śćźżóęą']
     WRONG_VALUES = [(1,3), [1,2,3.4]]
     DEFAULT_VALUE = 's'
-    TYPE = props.PropertyString
+    TYPE = fp.PropertyString
 
 @ddt
 class TestPropertyEnum(unittest.TestCase):
 
     NAME = 'name'
-    TYPE = props.PropertyEnum
+    TYPE = fp.PropertyEnum
     TYPE_NAME = 'enum'
 
     # todo refactor
@@ -584,18 +584,18 @@ class TestPropertyEnum(unittest.TestCase):
         self.good_vals = ['a', 'b', 'c']
         self.init_val = self.good_vals[0]
         self.bad_vals = ['A', self.NAME, None, 0]
-        options = [props.Cell(v) for v in self.good_vals]
+        options = [fp.Cell(v) for v in self.good_vals]
 
-        self.enum = props.PropertyEnum(self.NAME, options, self.init_val)
+        self.enum = fp.PropertyEnum(self.NAME, options, self.init_val)
 
     @data(
-        [props.Cell('a')],
-        [props.Cell('a'), props.Cell('b')]
+        [fp.Cell('a')],
+        [fp.Cell('a'), fp.Cell('b')]
     )
     def test_constructor(self, good_options):
         value = good_options[0].name
         try:
-            enum = props.PropertyEnum(self.NAME, good_options, value)
+            enum = fp.PropertyEnum(self.NAME, good_options, value)
         except Exception as e:
             self.fail('Exception occured for name: {}, opts: {}, '
                       'val: {}: {}'
@@ -604,9 +604,9 @@ class TestPropertyEnum(unittest.TestCase):
     @data(
         [],
         [None],
-        [props.Cell('a'), 1],
-        [props.Cell('a'), props.Cell('a')],
-        [props.Cell('a'), props.Property('b',1)]
+        [fp.Cell('a'), 1],
+        [fp.Cell('a'), fp.Cell('a')],
+        [fp.Cell('a'), fp.Property('b',1)]
     )
     def test_constructor_exception(self, wrong_options):
         try:
@@ -615,7 +615,7 @@ class TestPropertyEnum(unittest.TestCase):
             value = None
 
         try:
-            enum = props.PropertyEnum(self.NAME, wrong_options, value)
+            enum = fp.PropertyEnum(self.NAME, wrong_options, value)
         except ValueError:
             pass
         # except Exception as e:
@@ -624,12 +624,12 @@ class TestPropertyEnum(unittest.TestCase):
             self.fail('No exception for name: {}, wrong opts: {}, val: {}'
                     .format(self.NAME, wrong_options, value))
 
-    @data('c', 'd', None, [], props.Cell('a'))
+    @data('c', 'd', None, [], fp.Cell('a'))
     def test_constructor_wrong_values_exception(self, wrong_val):
-        options = [props.Cell('a'), props.Cell('b')]
+        options = [fp.Cell('a'), fp.Cell('b')]
 
         try:
-            enum = props.PropertyEnum(self.NAME, options, wrong_val)
+            enum = fp.PropertyEnum(self.NAME, options, wrong_val)
         except ValueError:
             pass
         except Exception as e:
@@ -682,7 +682,7 @@ class TestPropertyBool(TestProperty):
     PROPER_VALUES = ['True', 'False']
     WRONG_VALUES = [-1.1, 1, 'true']
     DEFAULT_VALUE = True
-    TYPE = props.PropertyBool
+    TYPE = fp.PropertyBool
     TYPE_NAME = 'bool'
 
     @data(True, False)
@@ -697,18 +697,18 @@ class TestPropertyBool(TestProperty):
 class TestUnion(unittest.TestCase):
 
     NAME = 'name'
-    TYPE = props.Union
+    TYPE = fp.Union
     TYPE_NAME = 'union'
     PROPER_VALUES = [
         {
-            'a': [props.Cell('a1'), props.Cell('a2')],
-            'b': [props.Cell('b1')]
+            'a': [fp.Cell('a1'), fp.Cell('a2')],
+            'b': [fp.Cell('b1')]
         }]
 
     def test_constructor(self):
         for type_map in self.PROPER_VALUES:
             try:
-                union = props.Union(self.NAME, type_map)
+                union = fp.Union(self.NAME, type_map)
             except Exception as e:
                 self.fail('Exception occured for name: {}, type_map: {}, '
                           ': {}'
@@ -716,7 +716,7 @@ class TestUnion(unittest.TestCase):
 
     def test_change_type(self):
         for type_map in self.PROPER_VALUES:
-            union = props.Union(self.NAME, type_map)
+            union = fp.Union(self.NAME, type_map)
 
             try:
                 for possible_type in type_map.keys():
@@ -729,7 +729,7 @@ class TestUnion(unittest.TestCase):
     def test_change_type(self):
         type_map = self.PROPER_VALUES[0]
         bad_types = ['c', 'A', 'aa']
-        union = props.Union(self.NAME, type_map)
+        union = fp.Union(self.NAME, type_map)
 
         for bad_type in bad_types:
             try:
@@ -743,11 +743,11 @@ class TestUnion(unittest.TestCase):
 
     def test_change_childs_value(self):
         v1 = 1
-        propInt = props.PropertyInt('b', v1)
+        propInt = fp.PropertyInt('b', v1)
         type_map = {
                 'a': [propInt]
             }
-        union = props.Union(self.NAME, type_map)
+        union = fp.Union(self.NAME, type_map)
         # initial check
         self.assertEqual(v1, union.b)
         self.assertEqual(propInt, union['*b'])

@@ -5,38 +5,37 @@ import unittest
 
 from ddt import ddt, data, unpack
 
-import bpconfig.properties as props
-import bpconfig.menu as menu
+import figpie as fp
 
 
 @ddt
 class TestMenu(unittest.TestCase):
 
     def setUp(self):
-        lvl2 = props.CellContainer('lvl2',
-                [props.Cell('2c1'),
-                props.Property('2p1', 1),
-                props.PropertyString('2p2', 'string')])
-        lvl1 = props.CellContainer('lvl1', [props.Cell('1c2'), lvl2])
-        root = props.CellContainer('root', [props.Cell('rc1'), lvl1])
+        lvl2 = fp.CellContainer('lvl2',
+                [fp.Cell('2c1'),
+                fp.Property('2p1', 1),
+                fp.PropertyString('2p2', 'string')])
+        lvl1 = fp.CellContainer('lvl1', [fp.Cell('1c2'), lvl2])
+        root = fp.CellContainer('root', [fp.Cell('rc1'), lvl1])
         self.container = root
-        self.menu = menu.Menu(self.container)
+        self.menu = fp.Menu(self.container)
 
     @data(
         [],
-        [props.Cell('a'), props.Property('b',1)],
+        [fp.Cell('a'), fp.Property('b',1)],
     )
     def test_constructor(self, container):
-        m = menu.Menu(container)
+        m = fp.Menu(container)
 
     @data(
-        [props.Cell('a'), props.Property('a',1)],
+        [fp.Cell('a'), fp.Property('a',1)],
         None,
         1,
         'some text'
     )
     def test_contstructor_raises(self, container):
-        self.assertRaises(ValueError, lambda: menu.Menu(container))
+        self.assertRaises(ValueError, lambda: fp.Menu(container))
 
 
 if __name__ == '__main__':

@@ -5,8 +5,8 @@ import unittest
 
 from ddt import ddt, data, unpack
 
-import bpconfig.properties as props
-from bpconfig.shorts import ShortMapper, ShortFinder
+import figpie as fp
+from figpie.shorts import ShortMapper, ShortFinder
 
 
 @ddt

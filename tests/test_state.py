@@ -5,34 +5,34 @@ import unittest
 
 from ddt import ddt, data, unpack
 
-import bpconfig.properties as props
-from bpconfig.state import State
-from bpconfig.actions import ActionManager
+import figpie as fp
+from figpie.state import State
+from figpie.actions import ActionManager
 
 
 @ddt
 class TestState(unittest.TestCase):
 
     def setUp(self):
-        lvl2 = props.CellContainer('lvl2',
-                [props.Cell('2c1'),
-                props.Property('2p1', 1),
-                props.PropertyString('2p2', 'string')])
-        lvl1 = props.CellContainer('lvl1', [props.Cell('1c2'), lvl2])
-        root = props.CellContainer('root', [props.Cell('rc1'), lvl1])
+        lvl2 = fp.CellContainer('lvl2',
+                [fp.Cell('2c1'),
+                fp.Property('2p1', 1),
+                fp.PropertyString('2p2', 'string')])
+        lvl1 = fp.CellContainer('lvl1', [fp.Cell('1c2'), lvl2])
+        root = fp.CellContainer('root', [fp.Cell('rc1'), lvl1])
         self.container = root
         self.actions = ActionManager()
         self.state = State(self.container, self.actions)
 
     @data(
         [],
-        [props.Cell('a'), props.Property('b',1)],
+        [fp.Cell('a'), fp.Property('b',1)],
     )
     def test_constructor(self, container):
         m = State(container, self.actions)
 
     @data(
-        [props.Cell('a'), props.Property('a',1)],
+        [fp.Cell('a'), fp.Property('a',1)],
         None,
         1,
         'some text'

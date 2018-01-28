@@ -5,11 +5,11 @@ def read(fname):
     return open(os.path.join(os.path.dirname(__file__), fname)).read()
 
 setup(
-    name = "bpconfig",
+    name = "figPie",
     version = "0.0.1",
     author = "Bartosz Piekarski",
     author_email = "mchtrbartoszpiekarski@gmail.com",
-    description = ("Simple interactive config"),
+    description = ("Simple interactive (con)fig"),
     license = "BSD",
     keywords = "simple interactive configuration",
     long_description=read('README'),
