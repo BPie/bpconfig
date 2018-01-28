@@ -12,7 +12,7 @@ setup(
     description = ("Simple interactive (con)fig"),
     license = "BSD",
     keywords = "simple interactive configuration",
-    long_description=read('README'),
+    long_description=read('README.md'),
     classifiers=[
         "Development Status :: 2 - Pre-Alpha",
         "Topic :: Utilities",
