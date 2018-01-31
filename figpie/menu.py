@@ -105,11 +105,11 @@ class Menu(object):
 
 def _test_get_root():
     u = props.Union('union', {
-        'a': [props.Cell('a1'), props.Cell('a2')],
-        'b': [props.Cell('b1')]
+        'a': [props.PropertyInt('a1',2), props.PropertyFloat('a2',3.4)],
+        'b': [props.PropertyString('b1', 'asdf')]
         })
     cont_2 = props.CellContainer('lvl2',
-            [props.Cell('2c1'),
+            [props.PropertyInt('2c1', 234),
             props.Property('2p1', 1),
             props.PropertyString('2p2', 'string'),
             props.PropertyFloat('float prop', 5.2),

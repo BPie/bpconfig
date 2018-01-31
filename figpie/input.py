@@ -85,9 +85,10 @@ class InputManager:
     def _handle_spc_property(self, state):
         if self._spc == 'KEY_ENTER':
             try:
-                state.current.value = self._inp
-                self._debug.msg('setting {} to {}'
+                self._debug.msg('setting {} to {}...'
                         .format(state.current, self._inp))
+                state.current.value = self._inp
+                self._debug.msg('ok')
             except AttributeError as e:
                 self._debug.msg('cannot set {} to {}, exception: {}'
                         .format(state.current, self._inp, e))

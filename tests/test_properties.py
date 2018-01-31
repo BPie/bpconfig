@@ -714,6 +714,44 @@ class TestUnion(unittest.TestCase):
                           ': {}'
                           .format(self.NAME, type_maplue, str(e)))
 
+    def test_constructor_single_cell(self):
+        try:
+            p1 = fp.PropertyInt('i', 5)
+            p2 = fp.PropertyInt('i', 5)
+            types_dict = {
+                    'a': p1,
+                    'b': p2,
+                }
+            union = fp.Union(self.NAME, types_dict)
+        except Exception as e:
+            self.fail('Exception occured: {}'.format(e))
+
+    def test_constructor_single_cell_and_value_changed(self):
+        p1 = fp.PropertyInt('i', 5)
+        p2 = fp.PropertyInt('i', 55)
+        types_dict = {
+                'a': p1,
+                'b': p2,
+            }
+        union = fp.Union(self.NAME, types_dict)
+
+        self.assertEqual(union.i, p1.value)
+        self.assertEqual(union['*i'], p1)
+        self.assertEqual(union.i, 5)
+        self.assertEqual(p1.value.i, 5)
+
+        p1.value = 6
+        self.assertEqual(union.i, p1.value)
+        self.assertEqual(union['*i'], p1)
+        self.assertEqual(union.i, 6)
+        self.assertEqual(p1.value.i, 6)
+
+        union.i = 7
+        self.assertEqual(union.i, p1.value)
+        self.assertEqual(union['*i'], p1)
+        self.assertEqual(union.i, 7)
+        self.assertEqual(p1.value.i, 7)
+
     def test_change_type(self):
         for type_map in self.PROPER_VALUES:
             union = fp.Union(self.NAME, type_map)
