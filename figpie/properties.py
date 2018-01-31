@@ -263,9 +263,6 @@ class Lambda(Property):
         if not callable(func):
             raise ValueError('given func <{}> is not callable!'.format(func))
 
-        if func() is None:
-            raise ValueError('given func <{}> is does not return None!'.format(func))
-
         Property.__init__(self, name, func, **kwargs)
         self._w = False
 
