@@ -734,23 +734,26 @@ class TestUnion(unittest.TestCase):
                 'b': p2,
             }
         union = fp.Union(self.NAME, types_dict)
+        union['type'] = 'a'
+
+        self.assertEqual(union.type, 'a')
 
         self.assertEqual(union.i, p1.value)
-        self.assertEqual(union['*i'], p1)
         self.assertEqual(union.i, 5)
-        self.assertEqual(p1.value.i, 5)
+        self.assertEqual(p1.value, 5)
+        self.assertEqual(union['*i'], p1)
 
         p1.value = 6
         self.assertEqual(union.i, p1.value)
-        self.assertEqual(union['*i'], p1)
         self.assertEqual(union.i, 6)
-        self.assertEqual(p1.value.i, 6)
+        self.assertEqual(p1.value, 6)
+        self.assertEqual(union['*i'], p1)
 
         union.i = 7
         self.assertEqual(union.i, p1.value)
-        self.assertEqual(union['*i'], p1)
         self.assertEqual(union.i, 7)
-        self.assertEqual(p1.value.i, 7)
+        self.assertEqual(p1.value, 7)
+        self.assertEqual(union['*i'], p1)
 
     def test_change_type(self):
         for type_map in self.PROPER_VALUES:

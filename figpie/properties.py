@@ -415,6 +415,10 @@ class Union(CellContainer):
     @property
     def _cells(self):
         cells = self._map[self.type]
+        if isinstance(cells, Cell):
+            cells = [cells]
+            self._map[self.type] = cells
+
         cells_copy = copy(cells)
 
         if not cells_copy:
