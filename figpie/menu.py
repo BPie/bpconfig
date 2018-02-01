@@ -99,9 +99,11 @@ class Menu(object):
         with self._t.fullscreen():
             while(True):
                 self._printer(self._state, self._input)
-                self._input(self._state)
-        #         self._gather_inp()
-        #         self._handle_inp()
+                try:
+                    self._input(self._state)
+                except Exception as e:
+                    self._state.add_warning(str(e))
+
 
 def _test_get_root():
     u = props.Union('union', {

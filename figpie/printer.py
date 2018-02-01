@@ -27,7 +27,7 @@ class Printer:
         self._clear()
         self._print_header(state)
         self._print_current(state)
-        self._print_footer(input_handler.input_value)
+        self._print_footer(input_handler.input_value, state.warnings)
 
     ''' Marks (highlights) short(cut) in a given name'''
     def _mark_short_in_name(self, name, short, f=None):
@@ -41,15 +41,6 @@ class Printer:
 
         return re.sub(short, f(short), name, 1, re.IGNORECASE)
 
-    def _print(self):
-        self._clear()
-        self._print_header()
-        self._print_current()
-        self._print_footer()
-        deb(self._inp)
-        deb(self._spc)
-        deb('')
-
     def _clear(self):
         print(self._t.clear())
 
@@ -58,14 +49,14 @@ class Printer:
         return self._t.get_location()
 
     ''' Prints a footer. '''
-    def _print_footer(self, input_value, prefix_msg=''):
+    def _print_footer(self, input_value, warnings, prefix_msg=''):
         th = self._t.height
         prompt = '{} >>> {}'.format(prefix_msg, input_value)
         msgs = {
                 th: prompt,
                 th-1: ' ',
                 th-2: '_'*self._t.width,
-                # th-3: self._info
+                th-3: warnings
                 }
 
         for h, msg in msgs.iteritems():
@@ -75,6 +66,7 @@ class Printer:
                     x = self._current_loc[1]
                     y = self._current_loc[0]
                     self._loc_cache['prompt'] = x, y
+
 
     def _print_current(self, state):
         if state.mode in ('container', 'enum'):

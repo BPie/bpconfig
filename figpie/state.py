@@ -29,6 +29,7 @@ class State(object):
         self._shorts = ShortMapper()
         self._actions = actions
         self._debug = debug
+        self._warnings = deque(maxlen=3)
 
     @property
     def path(self):
@@ -111,6 +112,16 @@ class State(object):
     @property
     def actions(self):
         return self._actions.usable
+
+    @property
+    def warnings(self):
+        if self._warnings:
+            return self._warnings.pop()
+        else:
+            return ''
+
+    def add_warning(self, warning):
+        self._warnings.append(warning)
 
     # @property
     # def _current_loc(self):
