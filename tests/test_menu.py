@@ -30,13 +30,17 @@ class TestMenu(unittest.TestCase):
 
     @data(
         [fp.Cell('a'), fp.Property('a',1)],
+    )
+    def test_contstructor_raises_name(self, container):
+        self.assertRaises(fp.WrongNameException, lambda: fp.Menu(container))
+
+    @data(
         None,
         1,
         'some text'
     )
-    def test_contstructor_raises(self, container):
-        self.assertRaises(ValueError, lambda: fp.Menu(container))
-
+    def test_contstructor_raises_type(self, container):
+        self.assertRaises(fp.WrongTypeException, lambda: fp.Menu(container))
 
 if __name__ == '__main__':
     unittest.main()

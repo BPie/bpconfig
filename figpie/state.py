@@ -21,7 +21,7 @@ class State(object):
         elif isinstance(container, props.CellContainer):
             self._container = container
         else:
-            raise ValueError("Wrong container type")
+            raise props.WrongTypeException("Wrong container type")
 
 
         self._pos = [self._container.name]

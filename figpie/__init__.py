@@ -13,4 +13,11 @@ from .properties import PropertyInt
 from .properties import PropertyString
 from .properties import Union
 
+from .properties import NotExecutableException
+from .properties import NotWriteableException
+from .properties import NotReadableException
+from .properties import WrongTypeException
+from .properties import WrongValueException
+from .properties import WrongNameException
+
 from .menu import Menu

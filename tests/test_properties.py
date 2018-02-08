@@ -18,7 +18,11 @@ class TestCell(unittest.TestCase):
 
     @data(123, 123.1, ['a','b'])
     def test_wrong_name(self, name):
-        self.assertRaises(ValueError, lambda n: fp.Cell(n), name)
+        self.assertRaises(fp.WrongNameException, lambda n: fp.Cell(n), name)
+
+
+    def test_wrong_name_empty(self):
+        self.assertRaises(fp.WrongNameException, lambda n: fp.Cell(n), '')
 
     def test_type(self):
         cell = fp.Cell('name')
@@ -47,7 +51,7 @@ class TestAction(unittest.TestCase):
     @data(1, None, 's')
     def test_action_exception(self, n_call):
         assert(not callable(n_call))
-        self.assertRaises(RuntimeError, lambda: fp.Action('name', n_call))
+        self.assertRaises(fp.WrongTypeException, lambda: fp.Action('name', n_call))
 
     def test_is_callable(self):
         a = fp.Action('name', lambda: 1)
@@ -297,7 +301,7 @@ class TestCellContainer(unittest.TestCase):
         for cell in cells_to_append:
             try:
                 cc.append(cell)
-            except ValueError:
+            except fp.WrongNameException:
                 pass
             except Exception as e:
                 self.fail('Wrong exception!: {}, {}'.format(type(e), str(e)))
@@ -354,7 +358,9 @@ class TestStrictCellContainer(unittest.TestCase):
     def test_constructor_exception(self, cells):
         try:
             scc = fp.StrictCellContainer('n', cells)
-        except ValueError:
+        except fp.WrongNameException:
+            pass
+        except fp.WrongTypeException:
             pass
         except Exception as e:
             self.fail('Wrong Exception: {}!'.format(str(e)))
@@ -378,7 +384,9 @@ class TestStrictCellContainer(unittest.TestCase):
         scc = fp.StrictCellContainer('n', [fp.Cell('x')])
         try:
             scc.append(cell)
-        except ValueError:
+        except fp.WrongNameException:
+            pass
+        except fp.WrongTypeException:
             pass
         except Exception as e:
             self.fail('Wrong Exception: {}!'.format(str(e)))
@@ -446,7 +454,9 @@ class TestProperty(unittest.TestCase):
         for wrong_value in self.WRONG_VALUES:
             try:
                 cell = self.TYPE(self.name, wrong_value)
-            except ValueError:
+            except fp.WrongTypeException:
+                pass
+            except fp.WrongValueException:
                 pass
             else:
                 self.fail('<{}>: no value raise for value = {}!'
@@ -457,10 +467,13 @@ class TestProperty(unittest.TestCase):
         for wrong_value in self.WRONG_VALUES:
             try:
                 cell.value = wrong_value
-            except ValueError:
+            except fp.WrongTypeException:
                 pass
-            except:
-                self.fail('wrong exception, given {}'.format(wrong_value))
+            except fp.WrongValueException:
+                pass
+            except Exception as e:
+                self.fail('wrong exception, given for {}, exception {}'.
+                        format(wrong_value, e))
             else:
                 self.fail('not raised for {}'.format(wrong_value))
 
@@ -482,7 +495,7 @@ class TestProperty(unittest.TestCase):
             self.assertEqual(not_writeable_cell.writeable, False)
             try:
                 not_writeable_cell.value = v
-            except RuntimeError as e:
+            except fp.NotWriteableException as e:
                 pass  # ok
             except Exception as e:
                 self.fail('unknown error: {}'.format(e))
@@ -494,7 +507,7 @@ class TestProperty(unittest.TestCase):
         self.assertEqual(readable_cell.readable, True)
         try:
             some_val = readable_cell.value
-        except RuntimeError as e:
+        except fp.NotReadableException as e:
             self.fail('should be readable: {}'.format(e))
         except Exception as e:
             self.fail('unknown error: {}'.format(e))
@@ -504,7 +517,7 @@ class TestProperty(unittest.TestCase):
         self.assertEqual(not_readable_cell.readable, False)
         try:
             some_val = not_readable_cell.value
-        except RuntimeError as e:
+        except fp.NotReadableException as e:
             pass  # ok
         except Exception as e:
             self.fail('unknown error: {}'.format(e))
@@ -516,7 +529,7 @@ class TestProperty(unittest.TestCase):
         try:
             not_executable_cell()
             self.assertEqual(not_readable_cell.executable, False)
-        except RuntimeError as e:
+        except fp.NotExecutableException as e:
             pass
         except Exception as e:
             self.fail('unknown error: {}'.format(e))
@@ -602,13 +615,11 @@ class TestPropertyEnum(unittest.TestCase):
                       .format(self.NAME, good_options, value, str(e)))
 
     @data(
-        [],
         [None],
         [fp.Cell('a'), 1],
-        [fp.Cell('a'), fp.Cell('a')],
         [fp.Cell('a'), fp.Property('b',1)]
     )
-    def test_constructor_exception(self, wrong_options):
+    def test_constructor_exception_wrong_type(self, wrong_options):
         try:
             value = wrong_options[0].name
         except:
@@ -616,7 +627,44 @@ class TestPropertyEnum(unittest.TestCase):
 
         try:
             enum = fp.PropertyEnum(self.NAME, wrong_options, value)
-        except ValueError:
+        except fp.WrongTypeException:
+            pass
+        # except Exception as e:
+        #     self.fail('Wrong exception!: {}, {}'.format(type(e), str(e)))
+        else:
+            self.fail('No exception for name: {}, wrong opts: {}, val: {}'
+                    .format(self.NAME, wrong_options, value))
+
+    @data(
+        [],
+    )
+    def test_constructor_exception_wrong_value(self, wrong_options):
+        try:
+            value = wrong_options[0].name
+        except:
+            value = None
+
+        try:
+            enum = fp.PropertyEnum(self.NAME, wrong_options, value)
+        except fp.WrongValueException:
+            pass
+        # except Exception as e:
+        #     self.fail('Wrong exception!: {}, {}'.format(type(e), str(e)))
+        else:
+            self.fail('No exception for name: {}, wrong opts: {}, val: {}'
+                    .format(self.NAME, wrong_options, value))
+    @data(
+        [fp.Cell('a'), fp.Cell('a')],
+    )
+    def test_constructor_exception_wrong_name(self, wrong_options):
+        try:
+            value = wrong_options[0].name
+        except:
+            value = None
+
+        try:
+            enum = fp.PropertyEnum(self.NAME, wrong_options, value)
+        except fp.WrongNameException:
             pass
         # except Exception as e:
         #     self.fail('Wrong exception!: {}, {}'.format(type(e), str(e)))
@@ -630,7 +678,9 @@ class TestPropertyEnum(unittest.TestCase):
 
         try:
             enum = fp.PropertyEnum(self.NAME, options, wrong_val)
-        except ValueError:
+        except fp.WrongValueException:
+            pass
+        except fp.WrongTypeException:
             pass
         except Exception as e:
             self.fail('Wrong exception!: {}, {}'.format(type(e), str(e)))
@@ -653,7 +703,9 @@ class TestPropertyEnum(unittest.TestCase):
         for v in self.bad_vals:
             try:
                 self.enum.value = v
-            except ValueError:
+            except fp.WrongValueException:
+                pass
+            except fp.WrongTypeException:
                 pass
             except Exception as e:
                 self.fail('Wrong exception!: {}, {}'.format(type(e), str(e)))
@@ -775,7 +827,7 @@ class TestUnion(unittest.TestCase):
         for bad_type in bad_types:
             try:
                 union.type = bad_type
-            except ValueError as e:
+            except fp.WrongValueException as e:
                 pass
             else:
                 self.fail('Exception NOT occured for type {} : {}'

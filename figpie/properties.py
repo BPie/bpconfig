@@ -4,15 +4,34 @@ from collections import OrderedDict, Iterable
 from copy import copy, deepcopy
 
 
+class WrongNameException(Exception):
+    pass
+
+class NotExecutableException(Exception):
+    pass
+
+class NotWriteableException(Exception):
+    pass
+
+class NotReadableException(Exception):
+    pass
+
+class WrongTypeException(Exception):
+    pass
+
+class WrongValueException(Exception):
+    pass
+
+
 class Cell(object):
 
     TYPE = 'cell'
 
     def __init__(self, name):
         if not isinstance(name, basestring):
-            raise ValueError("Wrong argument type (name: string)")
+            raise WrongNameException("Wrong argument type (name: string)")
         if not name:
-            raise ValueError("Wrong argument value (name: not empty)")
+            raise WrongNameException("Wrong argument value (name: not empty)")
         self._name = name
 
     @property
@@ -41,7 +60,7 @@ class Cell(object):
     @property
     def __call__(self):
         if not self.executable:
-            raise RuntimeError('{}({}) is not executable!'
+            raise NotExecutableException('{}({}) is not executable!'
                     .format(self.TYPE, self.name))
 
 
@@ -53,7 +72,7 @@ class Action(Cell):
     def __init__(self, name, action_f, is_active_f=None):
         Cell.__init__(self, name)
         if not callable(action_f):
-            raise RuntimeError('Given action_f is not callable!')
+            raise WrongTypeException('Given action_f is not callable!')
         # todo: check that the action_f has no arguments
         self._action_f = action_f
 
@@ -61,7 +80,7 @@ class Action(Cell):
         if is_active_f is None:
             is_active_f = lambda: True
         if not callable(is_active_f):
-            raise RuntimeError('Given is_active_f is not callable!')
+            raise WrongTypeException('Given is_active_f is not callable!')
         self._is_active_f = is_active_f
 
     def __str__(self):
@@ -194,10 +213,10 @@ class CellContainer(Cell):
 
     def append(self, cell):
         if not self._is_proper_type(cell):
-            raise ValueError('cell should be of type {} ({} given)'
+            raise WrongTypeException('cell should be of type {} ({} given)'
                     .format(self.CONTAINED_TYPE, type(cell)))
         elif self.contains(cell.name):
-            raise ValueError('cell with name {} already exists!'
+            raise WrongNameException('cell with name {} already exists!'
                     .format(cell.name))
         else:
             self._cells.append(cell)
@@ -235,7 +254,7 @@ class Property(Cell):
     @property
     def value(self):
         if not self.readable:
-            raise RuntimeError('{}({}) is not readable!'
+            raise NotReadableException('{}({}) is not readable!'
                     .format(self.TYPE, self.name))
 
         # if callable(self._value):
@@ -246,16 +265,16 @@ class Property(Cell):
     @value.setter
     def value(self, value):
         if not self.writeable:
-            raise RuntimeError('{}({}) is not writeable!'
+            raise NotWriteableException('{}({}) is not writeable!'
                     .format(self.TYPE, self.name))
 
         if value is None:
-            raise ValueError('Wrong value: cannot be None!')
+            raise WrongValueException('Wrong value: cannot be None!')
 
         if self._additional_value_check(value):
             self._value = value
         else:
-            raise ValueError('Additional value requirements not met!')
+            raise WrongValueException('Additional value requirements not met!')
 
     def _additional_value_check(self, value):
         return True
@@ -268,7 +287,7 @@ class Lambda(Property):
 
     def __init__(self, name, func, **kwargs):
         if not callable(func):
-            raise ValueError('given func <{}> is not callable!'.format(func))
+            raise WrongTypeException('given func <{}> is not callable!'.format(func))
 
         Property.__init__(self, name, func, **kwargs)
         self._w = False
@@ -282,7 +301,7 @@ class Lambda(Property):
     def value(self):
 
         if not self.readable:
-            raise RuntimeError('{}({}) is not readable!'
+            raise NotReadableException('{}({}) is not readable!'
                     .format(self.TYPE, self.name))
 
         return self._value()
@@ -298,9 +317,14 @@ class PropertyInt(Property):
         if isinstance(value, self._TYPE):
             return value
         elif isinstance(value, self._ACCEPTED_TYPES):
-            return self._TYPE(value)
+            try:
+                return self._TYPE(value)
+            except Exception as e:
+                raise WrongValueException('type <{}> matches but could not'
+                        'convert value <{}> to type <{}>'
+                        .format(type(value), value, self._TYPE))
         else:
-            raise ValueError('wrong value type {}, not a TYPE: {}'
+            raise WrongTypeException('wrong value type {}, not a TYPE: {}'
                              'nor accepted type {}!'.format(
                                  type(value),
                                  self._TYPE,
@@ -309,7 +333,7 @@ class PropertyInt(Property):
     @Property.value.setter
     def value(self, value):
         if not self.writeable:
-            raise RuntimeError('is not writeable!'
+            raise NotWriteableException('is not writeable!'
                     .format(self.TYPE, self.name))
 
         # proper value type
@@ -319,7 +343,7 @@ class PropertyInt(Property):
         if self._additional_value_check(value):
             self._value = value
         else:
-            raise ValueError('additional value requirements not met!')
+            raise WrongValueException('additional value requirements not met!')
 
 
 class PropertyFloat(PropertyInt):
@@ -345,15 +369,15 @@ class PropertyEnum(PropertyString):
     def __init__(self, name, options, value, **kwargs):
 
         if not options:
-            raise ValueError('options cannot be empty!')
+            raise WrongValueException('options cannot be empty!')
 
         if not isinstance(value, basestring):
-            raise ValueError('value should be a string type!')
+            raise WrongTypeException('value should be a string type!')
 
         self._options = StrictCellContainer(name+'\'s container_', options)
 
         if not self._options.contains(value):
-            raise ValueError('value {} not found in options {}'
+            raise WrongValueException('value {} not found in options {}'
                     .format(value, options))
 
         PropertyString.__init__(self, name, value, **kwargs)
@@ -475,10 +499,10 @@ class Union(CellContainer):
 
     def append(self, cell):
         if not self._is_proper_type(cell):
-            raise ValueError('cell should be of type {} ({} given)'
+            raise WrongTypeException('cell should be of type {} ({} given)'
                     .format(self.CONTAINED_TYPE, type(cell)))
         elif self.contains(cell.name):
-            raise ValueError('cell with name {} already exists!'
+            raise WrongNameException('cell with name {} already exists!'
                     .format(cell.name))
         else:
             self._map[self._type].append(cell)

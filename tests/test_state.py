@@ -32,13 +32,20 @@ class TestState(unittest.TestCase):
         m = State(container, self.actions)
 
     @data(
-        [fp.Cell('a'), fp.Property('a',1)],
         None,
         1,
         'some text'
     )
     def test_contstructor_raises(self, container):
-        self.assertRaises(ValueError, lambda: State(container, self.actions))
+        self.assertRaises(fp.WrongTypeException,
+                lambda: State(container, self.actions))
+
+    @data(
+        [fp.Cell('a'), fp.Property('a',1)],
+    )
+    def test_contstructor_raises_same_name(self, container):
+        self.assertRaises(fp.WrongNameException,
+                lambda: State(container, self.actions))
 
     def test_current_root(self):
         self.assertEqual(self.state.current, self.container)
