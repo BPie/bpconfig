@@ -1,6 +1,6 @@
 #encoding=utf-8
 
-from collections import OrderedDict
+from collections import OrderedDict, Iterable
 from copy import copy, deepcopy
 
 
@@ -93,8 +93,15 @@ class CellContainer(Cell):
         Cell.__init__(self, name)
 
         self._cells = []
-        if cells is not None:
-            map(self.append, cells)
+        if cells is None:
+            cells = []
+        elif not isinstance(cells, Iterable):
+            cells = [cells]
+
+        # separate append so as to check correctness of cells
+        for cell in cells:
+            self.append(cell)
+
 
     def __str__(self):
         return "<CellContainer[{}]({})>".format(len(self), self.name)
