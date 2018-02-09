@@ -89,7 +89,7 @@ class InputManager:
                         .format(state.current, self._inp))
                 state.current.value = self._inp
                 self._debug.msg('ok')
-            except AttributeError as e:
+            except (props.WrongValueException, props.WrongTypeException) as e:
                 self._debug.msg('cannot set {} to {}, exception: {}'
                         .format(state.current, self._inp, e))
             finally:
@@ -229,7 +229,7 @@ class InputManager:
 
         try:
             self._actions[self._spc]()
-        except:
+        except KeyError:
             if force_clean:
                 self._clean_spc()
             return False
@@ -261,7 +261,7 @@ class InputManager:
         try:
             name = self._inp[1:]
             self._actions[name]()
-        except:
+        except KeyError:
             if force_clean:
                 self._clean_inp()
             return False

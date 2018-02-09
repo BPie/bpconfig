@@ -101,7 +101,9 @@ class Menu(object):
                 self._printer(self._state, self._input)
                 try:
                     self._input(self._state)
-                except Exception as e:
+                except (KeyError, props.WrongTypeException,
+                        props.WrongValueException,
+                        props.WrongNameException) as e:
                     self._state.add_warning(str(e))
 
 

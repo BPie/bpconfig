@@ -21,3 +21,4 @@ from .properties import WrongValueException
 from .properties import WrongNameException
 
 from .menu import Menu
+from .state import State
