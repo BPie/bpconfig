@@ -319,7 +319,7 @@ class PropertyInt(Property):
         elif isinstance(value, self._ACCEPTED_TYPES):
             try:
                 return self._TYPE(value)
-            except Exception as e:
+            except ValueError as e:
                 raise WrongValueException('type <{}> matches but could not'
                         'convert value <{}> to type <{}>'
                         .format(type(value), value, self._TYPE))
