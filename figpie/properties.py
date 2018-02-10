@@ -110,12 +110,16 @@ class CellContainer(Cell):
     EXACT_TYPE = False
     TYPE = 'container'
 
+    ''' Patrern used for auto generating cells '''
+    PATTERN = re.compile('_create_(\w+)_prop', re.IGNORECASE)
+
     def __init__(self, name, cells=None):
         Cell.__init__(self, name)
 
         self._cells = []
         if cells is None:
-            cells = []
+            cells = self._create_cells()
+
         elif not isinstance(cells, Iterable):
             cells = [cells]
 
@@ -123,6 +127,21 @@ class CellContainer(Cell):
         for cell in cells:
             self.append(cell)
 
+    ''' Returns  list of (part_name, full_name) function names that matches
+    PATTERN.
+    '''
+    def _get_creators(self):
+        methods = [name
+                for (name, method)
+                in inspect.getmembers(self.__class__, predicate=inspect.ismethod)]
+
+        matches = [self.PATTERN.match(method) for method in methods]
+        return [(match.group(), match.group(1)) for match in matches if match]
+
+    ''' Generates cells from methods in the class. '''
+    def _create_cells(self):
+        return [ Cell.__getattribute__(self, creator_name)()
+                for creator_name, _ in self._get_creators() ]
 
     def __str__(self):
         return "<CellContainer[{}]({})>".format(len(self), self.name)
@@ -438,7 +457,6 @@ class Union(CellContainer):
         Cell.__init__(self, name)
 
         if types_map == None:
-            print 'auto creating types!'
             types_map = self._create_map()
 
         types = [Cell(s) for s in types_map.keys()]
@@ -446,21 +464,10 @@ class Union(CellContainer):
         self._map = types_map
 
 
-    ''' Returns  list of (name, method) that matches PATTERN.
-    Used for auto generating map of types -> properties from methods in the class.
-    '''
-    def _get_type_creators(self):
-        methods = [name
-                for (name, method)
-                in inspect.getmembers(self.__class__, predicate=inspect.ismethod)]
-
-        matches = [self.PATTERN.match(method) for method in methods]
-        return [(match.group(), match.group(1)) for match in matches if match]
-
     ''' Generates map of types -> properties from methods in the class. '''
     def _create_map(self):
         return { type_name: Cell.__getattribute__(self, creator_name)()
-                for creator_name, type_name  in self._get_type_creators() }
+                for creator_name, type_name  in self._get_creators() }
 
 
     @property
