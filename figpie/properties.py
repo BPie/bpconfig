@@ -1,5 +1,7 @@
 #encoding=utf-8
 
+import inspect
+import re
 from collections import OrderedDict, Iterable
 from copy import copy, deepcopy
 
@@ -429,11 +431,37 @@ class Union(CellContainer):
 
     TYPE = 'union'
 
-    def __init__(self, name, types_map):
+    ''' Patrern used for auto generating map of types -> properties '''
+    PATTERN = re.compile('_create_(\w+)_props', re.IGNORECASE)
+
+    def __init__(self, name, types_map=None):
         Cell.__init__(self, name)
+
+        if types_map == None:
+            print 'auto creating types!'
+            types_map = self._create_map()
+
         types = [Cell(s) for s in types_map.keys()]
         self._type = PropertyEnum('type', types, types_map.keys()[0])
         self._map = types_map
+
+
+    ''' Returns  list of (name, method) that matches PATTERN.
+    Used for auto generating map of types -> properties from methods in the class.
+    '''
+    def _get_type_creators(self):
+        methods = [name
+                for (name, method)
+                in inspect.getmembers(self.__class__, predicate=inspect.ismethod)]
+
+        matches = [self.PATTERN.match(method) for method in methods]
+        return [(match.group(), match.group(1)) for match in matches if match]
+
+    ''' Generates map of types -> properties from methods in the class. '''
+    def _create_map(self):
+        return { type_name: Cell.__getattribute__(self, creator_name)()
+                for creator_name, type_name  in self._get_type_creators() }
+
 
     @property
     def type(self):
