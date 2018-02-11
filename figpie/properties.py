@@ -111,7 +111,7 @@ class CellContainer(Cell):
     TYPE = 'container'
 
     ''' Patrern used for auto generating cells '''
-    PATTERN = re.compile('_create_(\w+)_prop', re.IGNORECASE)
+    PATTERN = re.compile('_create_(\w+)_prop$', re.IGNORECASE)
 
     def __init__(self, name, cells=None):
         Cell.__init__(self, name)
@@ -142,6 +142,13 @@ class CellContainer(Cell):
     def _create_cells(self):
         return [ Cell.__getattribute__(self, creator_name)()
                 for creator_name, _ in self._get_creators() ]
+
+    ''' Helper method if needed for dervative classes '''
+    def _append_from_creators(self):
+        # separate append so as to check correctness of cells
+        for cell in self._create_cells():
+            self.append(cell)
+
 
     def __str__(self):
         return "<CellContainer[{}]({})>".format(len(self), self.name)
@@ -451,7 +458,7 @@ class Union(CellContainer):
     TYPE = 'union'
 
     ''' Patrern used for auto generating map of types -> properties '''
-    PATTERN = re.compile('_create_(\w+)_props', re.IGNORECASE)
+    PATTERN = re.compile('_create_(\w+)_props$', re.IGNORECASE)
 
     def __init__(self, name, types_map=None):
         Cell.__init__(self, name)
