@@ -1,4 +1,4 @@
-![figPie](https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQxtviotAq8y-91dZ2s93gHtfRQfMOCjmCs6sarK_Y3JETBx1ZW)
+![figpie](https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQxtviotAq8y-91dZ2s93gHtfRQfMOCjmCs6sarK_Y3JETBx1ZW)
 
 
 # what it will be
