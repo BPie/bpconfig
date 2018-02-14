@@ -425,7 +425,7 @@ class TestProperty(unittest.TestCase):
     name = 'name'
     DEFAULT_VALUE = 0
     PROPER_VALUES = [1, 1., 'value', fp.Cell('name')]
-    WRONG_VALUES = [None]
+    WRONG_VALUES = []
     TYPE = fp.Property
     TYPE_NAME = 'variant'
 

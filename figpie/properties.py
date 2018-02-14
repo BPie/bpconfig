@@ -296,8 +296,8 @@ class Property(Cell):
             raise NotWriteableException('{}({}) is not writeable!'
                     .format(self.TYPE, self.name))
 
-        if value is None:
-            raise WrongValueException('Wrong value: cannot be None!')
+        # if value is None:
+        #     raise WrongValueException('Wrong value: cannot be None!')
 
         if self._additional_value_check(value):
             self._value = value
