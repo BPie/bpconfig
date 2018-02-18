@@ -398,6 +398,10 @@ class PropertyEnum(PropertyString):
 
         if not options:
             raise WrongValueException('options cannot be empty!')
+        else:
+            for i, option in enumerate(options):
+                if isinstance(option, basestring):
+                    options[i] = Cell(option)
 
         if not isinstance(value, basestring):
             raise WrongTypeException('value should be a string type!')
