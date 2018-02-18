@@ -758,37 +758,37 @@ class TestUnion(unittest.TestCase):
         }]
 
     def test_constructor(self):
-        for type_map in self.PROPER_VALUES:
+        for modes_map in self.PROPER_VALUES:
             try:
-                union = fp.Union(self.NAME, type_map)
+                union = fp.Union(self.NAME, modes_map)
             except Exception as e:
-                self.fail('Exception occured for name: {}, type_map: {}, '
+                self.fail('Exception occured for name: {}, modes_map: {}, '
                           ': {}'
-                          .format(self.NAME, type_maplue, str(e)))
+                          .format(self.NAME, modes_maplue, str(e)))
 
     def test_constructor_single_cell(self):
         try:
             p1 = fp.PropertyInt('i', 5)
             p2 = fp.PropertyInt('i', 5)
-            types_dict = {
+            modes_map = {
                     'a': p1,
                     'b': p2,
                 }
-            union = fp.Union(self.NAME, types_dict)
+            union = fp.Union(self.NAME, modes_map)
         except Exception as e:
             self.fail('Exception occured: {}'.format(e))
 
     def test_constructor_single_cell_and_value_changed(self):
         p1 = fp.PropertyInt('i', 5)
         p2 = fp.PropertyInt('i', 55)
-        types_dict = {
+        modes_map = {
                 'a': p1,
                 'b': p2,
             }
-        union = fp.Union(self.NAME, types_dict)
-        union['type'] = 'a'
+        union = fp.Union(self.NAME, modes_map)
+        union['mode'] = 'a'
 
-        self.assertEqual(union.type, 'a')
+        self.assertEqual(union.mode, 'a')
 
         self.assertEqual(union.i, p1.value)
         self.assertEqual(union.i, 5)
@@ -807,40 +807,40 @@ class TestUnion(unittest.TestCase):
         self.assertEqual(p1.value, 7)
         self.assertEqual(union['*i'], p1)
 
-    def test_change_type(self):
-        for type_map in self.PROPER_VALUES:
-            union = fp.Union(self.NAME, type_map)
+    def test_change_mode(self):
+        for modes_map in self.PROPER_VALUES:
+            union = fp.Union(self.NAME, modes_map)
 
             try:
-                for possible_type in type_map.keys():
-                    union['type'].value = possible_type
+                for possible_mode in modes_map.keys():
+                    union['mode'].value = possible_mode
             except KeyError() as e:
-                self.fail('Exception occured for type {} : {}'
-                        .format(possible_type, e))
+                self.fail('Exception occured for mode {} : {}'
+                        .format(possible_mode, e))
 
 
-    def test_change_type(self):
-        type_map = self.PROPER_VALUES[0]
-        bad_types = ['c', 'A', 'aa']
-        union = fp.Union(self.NAME, type_map)
+    def test_change_mode(self):
+        modes_map = self.PROPER_VALUES[0]
+        bad_modes = ['c', 'A', 'aa']
+        union = fp.Union(self.NAME, modes_map)
 
-        for bad_type in bad_types:
+        for bad_mode in bad_modes:
             try:
-                union.type = bad_type
+                union.mode = bad_mode
             except fp.WrongValueException as e:
                 pass
             else:
-                self.fail('Exception NOT occured for type {} : {}'
-                        .format(possible_type, e))
+                self.fail('Exception NOT occured for mode {} : {}'
+                        .format(possible_mode, e))
 
 
     def test_change_childs_value(self):
         v1 = 1
         propInt = fp.PropertyInt('b', v1)
-        type_map = {
+        modes_map = {
                 'a': [propInt]
             }
-        union = fp.Union(self.NAME, type_map)
+        union = fp.Union(self.NAME, modes_map)
         # initial check
         self.assertEqual(v1, union.b)
         self.assertEqual(propInt, union['*b'])

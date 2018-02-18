@@ -464,37 +464,33 @@ class Union(CellContainer):
     ''' Patrern used for auto generating map of types -> properties '''
     PATTERN = re.compile('_create_(\w+)_props$', re.IGNORECASE)
 
-    def __init__(self, name, types_map=None):
+    def __init__(self, name, modes_map=None):
         Cell.__init__(self, name)
 
-        if types_map == None:
-            types_map = self._create_map()
+        if modes_map == None:
+            modes_map = self._create_map()
 
-        types = [Cell(s) for s in types_map.keys()]
-        self._type = PropertyEnum('type', types, types_map.keys()[0])
-        self._map = types_map
+        modes = [Cell(s) for s in modes_map.keys()]
+        self._mode = PropertyEnum('mode', modes, modes_map.keys()[0])
+        self._map = modes_map
 
 
-    ''' Generates map of types -> properties from methods in the class. '''
+    ''' Generates map of modes -> properties from methods in the class. '''
     def _create_map(self):
-        return { type_name: Cell.__getattribute__(self, creator_name)()
-                for creator_name, type_name  in self._get_creators() }
+        return { mode_name: Cell.__getattribute__(self, creator_name)()
+                for creator_name, mode_name  in self._get_creators() }
 
 
     @property
-    def type(self):
-        return self._type.value
-
-    # @type.setter
-    # def type(self, value):
-
+    def mode(self):
+        return self._mode.value
 
     @property
     def _cells(self):
-        cells = self._map[self.type]
+        cells = self._map[self.mode]
         if isinstance(cells, Cell):
             cells = [cells]
-            self._map[self.type] = cells
+            self._map[self.mode] = cells
 
         cells_copy = copy(cells)
 
@@ -503,14 +499,14 @@ class Union(CellContainer):
         elif not isinstance(cells_copy, list):
             cells_copy = [cells_copy]
 
-        cells_copy.append(self._type)
+        cells_copy.append(self._mode)
         return cells_copy
 
     def __str__(self):
         return "<Union[{}]({}: {})>".format(
                 len(self),
                 self.name,
-                self._type.name)
+                self._mode.name)
 
     # def __len__(self):
     #     return len(self._cells)
@@ -551,7 +547,7 @@ class Union(CellContainer):
             raise WrongNameException('cell with name {} already exists!'
                     .format(cell.name))
         else:
-            self._map[self._type].append(cell)
+            self._map[self._mode].append(cell)
             # self._cells.append(cell)
 
     # def __iter__(self):
