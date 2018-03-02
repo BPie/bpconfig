@@ -352,11 +352,18 @@ class TestCellContainer(unittest.TestCase):
             def d(self):
                 return 2*self.a + self.b  # 4
 
+            @property
+            def _d(self):
+                return self.d * 2
+
         foo = SomeClass()
+        for attr_name in ['a', 'b', 'c', 'd', '_d']:
+            self.assertTrue(hasattr(foo, attr_name))
         self.assertEqual(foo.a, 1)
         self.assertEqual(foo.b, 2)
         self.assertEqual(foo.c, 3)
         self.assertEqual(foo.d, 4)
+        self.assertEqual(foo._d, 8)
 
 
 
