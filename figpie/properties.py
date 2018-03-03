@@ -35,6 +35,7 @@ class Cell(object):
         if not name:
             raise WrongNameException("Wrong argument value (name: not empty)")
         self._name = name
+        object.__init__(self)
 
     @property
     def readable(self):
@@ -199,19 +200,10 @@ class CellContainer(Cell):
     #             return cell
     #     raise KeyError('name {} not found'.format(name))
 
-    def __getattribute__(self, name):
-        try:
-            return Cell.__getattribute__(self, name)
-        except AttributeError:
-            return self.__getitem__(name)
+    def __getattr__(self, name):
+        return self.__getitem__(name)
 
-        # try:
-        #     return Cell.__getattribute__(self, attr)
-        # except AttributeError as e:
-        #     print 'NO attr named ', attr, e
-        #     return self.__getitem__(attr)
-        # else:
-        #     print 'found attr named ', attr
+
 
     def __setattr__(self, name, value):
         if name in self.__dict__:
