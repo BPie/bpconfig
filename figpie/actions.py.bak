@@ -30,7 +30,7 @@ class ActionManager(object):
 
     @property
     def usable(self):
-        return {key: action for (key, action) in list(self._actions.items()) if action}
+        return {key: action for (key, action) in self._actions.items() if action}
 
     def __getitem__(self, key):
         return self.usable[key]

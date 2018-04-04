@@ -1,6 +1,6 @@
 #encoding = utf-8
-
-
+from __future__ import absolute_import
+from __future__ import print_function
 
 import sys
 import re
@@ -11,7 +11,6 @@ from blessed import Terminal
 from . import properties as props
 from . import style
 from .shorts import ShortMapper
-from functools import reduce
 
 
 class State(object):
@@ -99,11 +98,11 @@ class State(object):
         if self.mode not in ('enum', 'container'):
             return None
 
-        used_keys = list(self._actions.all.keys())
+        used_keys = self._actions.all.keys()
         current = self.current
-        short_map = self._shorts(list(current.keys()), banned=used_keys)
+        short_map = self._shorts(current.keys(), banned=used_keys)
 
-        return OrderedDict(list(zip(short_map, list(current.values()))))
+        return OrderedDict(zip(short_map, current.values()))
 
     '''
     Gets possible actions to invoke

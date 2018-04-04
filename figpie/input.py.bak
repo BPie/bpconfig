@@ -1,6 +1,6 @@
 #encoding = utf-8
-
-
+from __future__ import absolute_import
+from __future__ import print_function
 
 import sys
 import re
@@ -177,11 +177,11 @@ class InputManager:
         raise ValueError('cannot handle input while in action state!')
 
     def _possible_options_keys(self, state):
-        return self._finder(list(state.options.keys()), self._inp)
+        return self._finder(state.options.keys(), self._inp)
 
     def _possible_actions_keys(self, state, sentence):
-        self._debug.msg('all action keys: {}, sentence: {}'.format(list(state.actions.keys()), sentence))
-        return self._finder(list(state.actions.keys()), sentence)
+        self._debug.msg('all action keys: {}, sentence: {}'.format(state.actions.keys(), sentence))
+        return self._finder(state.actions.keys(), sentence)
 
         # if self._state == 'container':
         #     pass
@@ -306,11 +306,11 @@ class InputManager:
 
     def _fltr_all_actions_short(self, mode):
         r_str = self._r_str(self._inp, mode)
-        return [s for s in list(self._actions.keys()) if re.match(r_str, s)]
+        return [s for s in self._actions.keys() if re.match(r_str, s)]
 
     def _fltr_options_shorts(self, mode):
         r_str = self._r_str(self._inp, mode)
-        return [s for s in list(self._options.keys()) if re.match(r_str, s)]
+        return [s for s in self._options.keys() if re.match(r_str, s)]
 
     def _fltr_shorts(self, mode='all'):
         act_n = self._fltr_all_actions_short(mode)

@@ -30,7 +30,7 @@ class Cell(object):
     TYPE = 'cell'
 
     def __init__(self, name):
-        if not isinstance(name, str):
+        if not isinstance(name, basestring):
             raise WrongNameException("Wrong argument type (name: string)")
         if not name:
             raise WrongNameException("Wrong argument value (name: not empty)")
@@ -89,7 +89,7 @@ class Action(Cell):
     def __str__(self):
         return "<Action({}): {}>".format(self.name, self._action_f)
 
-    def __bool__(self):
+    def __nonzero__(self):
         return self._is_active_f()
 
     @property
@@ -209,7 +209,7 @@ class CellContainer(Cell):
         if name in self.__dict__:
             # print 'invoked 1 on {}, {}'.format(name,value)
             Cell.__setattr__(self, name, value)
-        elif hasattr(self, '_cells') and name in list(self.keys()):
+        elif hasattr(self, '_cells') and name in self.keys():
             # print 'invoked 2 on {}, {}'.format(name,value)
             self.__setitem__(name, value)
         else:
@@ -223,7 +223,7 @@ class CellContainer(Cell):
         return copy(self._cells)
 
     def contains(self, name):
-        return name in list(self.keys())
+        return name in self.keys()
 
     def _is_proper_type(self, cell):
         if self.EXACT_TYPE:
@@ -331,7 +331,7 @@ class PropertyInt(Property):
 
     TYPE = 'int'
     _TYPE = int
-    _ACCEPTED_TYPES = (str,)
+    _ACCEPTED_TYPES = (basestring,)
 
     def _convert(self, value):
         if isinstance(value, self._TYPE):
@@ -370,14 +370,14 @@ class PropertyFloat(PropertyInt):
 
     TYPE = 'float'
     _TYPE = float
-    _ACCEPTED_TYPES = (float, int, str)
+    _ACCEPTED_TYPES = (float, int, basestring)
 
 
 class PropertyString(PropertyInt):
 
     TYPE = 'str'
-    _TYPE = str
-    _ACCEPTED_TYPES = (str,)
+    _TYPE = unicode
+    _ACCEPTED_TYPES = (basestring,)
 
 
 class PropertyEnum(PropertyString):
@@ -392,10 +392,10 @@ class PropertyEnum(PropertyString):
             raise WrongValueException('options cannot be empty!')
         else:
             for i, option in enumerate(options):
-                if isinstance(option, str):
+                if isinstance(option, basestring):
                     options[i] = Cell(option)
 
-        if not isinstance(value, str):
+        if not isinstance(value, basestring):
             raise WrongTypeException('value should be a string type!')
 
         self._options = StrictCellContainer(name+'\'s container_', options)
@@ -421,10 +421,10 @@ class PropertyEnum(PropertyString):
         return self._options[name]
 
     def keys(self):
-        return list(self._options.keys())
+        return self._options.keys()
 
     def values(self):
-        return list(self._options.values())
+        return self._options.values()
 
     def contains(self, name):
         return self._options.contains(name)
@@ -433,7 +433,7 @@ class PropertyEnum(PropertyString):
 class PropertyBool(PropertyEnum):
 
     TYPE = 'bool'
-    _ACCEPTED_TYPES = (bool, str)
+    _ACCEPTED_TYPES = (bool, basestring)
 
     def __init__(self, name, value, **kwargs):
         bool_options = [Cell('True'), Cell('False')]
@@ -445,7 +445,7 @@ class PropertyBool(PropertyEnum):
 
         PropertyEnum.__init__(self, name, bool_options, value, **kwargs)
 
-    def __bool__(self):
+    def __nonzero__(self):
         return self.value == 'True'
 
 
@@ -462,8 +462,8 @@ class Union(CellContainer):
         if modes_map == None:
             modes_map = self._create_map()
 
-        modes = [Cell(s) for s in list(modes_map.keys())]
-        self._mode = PropertyEnum('mode', modes, list(modes_map.keys())[0])
+        modes = [Cell(s) for s in modes_map.keys()]
+        self._mode = PropertyEnum('mode', modes, modes_map.keys()[0])
         self._map = modes_map
 
 
@@ -549,5 +549,5 @@ class Union(CellContainer):
 
 if __name__ == '__main__':
     cell = Cell('name')
-    print(cell.name)
+    print cell.name
 
