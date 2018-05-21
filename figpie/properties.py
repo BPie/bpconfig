@@ -479,7 +479,7 @@ class Union(CellContainer):
 
     @property
     def _cells(self):
-        cells = self._map[self.mode]
+        cells = super().__getattribute__('_map')[self.mode]
         if isinstance(cells, Cell):
             cells = [cells]
             self._map[self.mode] = cells
