@@ -23,11 +23,11 @@ class Printer:
         self._loc_cache = {}
         self._debug = debug
 
-    def __call__(self, state, input_handler):
+    def print(self, state, input_handler):
         self._clear()
         self._print_header(state)
         self._print_current(state)
-        self._print_footer(input_handler.input_value, state.warnings)
+        # self._print_footer(input_handler.input_value, state.warnings)
 
     ''' Marks (highlights) short(cut) in a given name'''
     def _mark_short_in_name(self, name, short, f=None):
@@ -48,7 +48,24 @@ class Printer:
     def _current_loc(self):
         return self._t.get_location()
 
-    ''' Prints a footer. '''
+    def _print_header(self, state):
+        with self._t.location(0,0):
+            tail = state.path[:-1]
+            head = state.path[-1]
+            print(self._t.center(self._t.black_on_white('/'.join(tail))
+                    + self._t.bold_black_on_white('/'+head)))
+
+    def _print_current(self, state):
+        pass
+        if state.mode in ('container', 'enum'):
+            self._print_options(state)
+        elif state.mode in ('property',):
+            self._print_edit(state)
+        elif state.mode in ('action',):
+            pass
+        else:
+            raise RuntimeError('wrong state: {}'.format(state))
+
     def _print_footer(self, input_value, warnings, prefix_msg=''):
         th = self._t.height
         prompt = '{} >>> {}'.format(prefix_msg, input_value)
@@ -67,24 +84,13 @@ class Printer:
                     y = self._current_loc[0]
                     self._loc_cache['prompt'] = x, y
 
-
-    def _print_current(self, state):
-        if state.mode in ('container', 'enum'):
-            self._print_options(state)
-        elif state.mode in ('property',):
-            self._print_edit(state)
-        elif state.mode in ('action',):
-            pass
-        else:
-            raise RuntimeError('wrong state: {}'.format(state))
-
     def _print_options(self, state):
         if state.mode not in ('container', 'enum'):
             raise RuntimeError('wrong state {}'.format(state))
 
         with self._t.location(0, 2):
             print(self._t.center(' ~~~< options >~~~ '))
-            for short, cell in state.options.iteritems():
+            for short, cell in state.options.items():
                 self._print_option(cell, short)
 
     def _print_edit(self, state):
@@ -111,13 +117,6 @@ class Printer:
         filled_str = str_template.format(attr_val)
         styled_str = self._style(cell, attrname)(filled_str)
         return styled_str
-
-    def _print_header(self, state):
-        with self._t.location(0,0):
-            tail = state.path[:-1]
-            head = state.path[-1]
-            print(self._t.center(self._t.black_on_white('/'.join(tail))
-                    + self._t.bold_black_on_white('/'+head)))
 
     def _print_option(self, cell, short, style=None):
         msg = ''

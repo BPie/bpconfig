@@ -1,7 +1,5 @@
 #encoding = utf-8
 
-
-
 import sys
 import re
 import atexit
@@ -98,10 +96,11 @@ class Menu(object):
     def run(self):
         with self._t.fullscreen():
             while(True):
-                self._printer(self._state, self._input)
+                self._printer.print(self._state, self._input)
                 try:
                     self._input(self._state)
-                except (KeyError, props.WrongTypeException,
+                except (KeyError,
+                        props.WrongTypeException,
                         props.WrongValueException,
                         props.WrongNameException) as e:
                     self._state.add_warning(str(e))
@@ -138,8 +137,8 @@ if __name__ == '__main__':
     menu = Menu(root_container, False)
     atexit.register(deb.close_all_processes)
 
-    menu.run()
-    # try:
-    #     menu.run()
-    # except Exception as e:
-    #     print('exception occured: ', e)
+    # menu.run()
+    try:
+        menu.run()
+    except Exception as e:
+        print('exception occured: ', e)

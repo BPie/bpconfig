@@ -560,8 +560,8 @@ class TestProperty(unittest.TestCase):
     def test_not_execitable(self):
         not_executable_cell = self.TYPE(self.name, self.DEFAULT_VALUE)
         try:
+            self.assertEqual(not_executable_cell.executable, False)
             not_executable_cell()
-            self.assertEqual(not_readable_cell.executable, False)
         except fp.NotExecutableException as e:
             pass
         except Exception as e:

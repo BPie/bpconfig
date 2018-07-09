@@ -39,15 +39,15 @@ class Cell(object):
 
     @property
     def readable(self):
-        return false
+        return False
 
     @property
     def writeable(self):
-        return false
+        return False
 
     @property
     def executable(self):
-        return hasattr(self, '__call__')
+        return False
 
     @property
     def type(self):
@@ -201,9 +201,12 @@ class CellContainer(Cell):
     #     raise KeyError('name {} not found'.format(name))
 
     def __getattr__(self, name):
-        return self.__getitem__(name)
-
-
+        try:
+            return self.__getitem__(name)
+        except KeyError:
+             raise AttributeError('{} has no attribute {}'.format(
+                    self.__class__.__name__,
+                    name))
 
     def __setattr__(self, name, value):
         if name in self.__dict__:
