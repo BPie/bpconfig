@@ -334,6 +334,21 @@ class TestCellContainer(unittest.TestCase):
         self.assertEqual(cc['*p1'], p1)
         self.assertEqual(cc['*p2'], p2)
 
+    def test_derivative_class_with_creator_class(self):
+
+        class SomeClass(fp.CellContainer):
+
+            def _create_a_prop(self):
+                return PropertyBool('a', true)
+
+            def _create_b_prop(self):
+                return PropertyBool('b', false)
+
+        instance = SomeClass('some name')
+        self.assertTrue(instance.a)
+        self.assertFalse(instance.b)
+
+
     def test_derivative_class_with_property(self):
 
         class SomeClass(fp.CellContainer):
