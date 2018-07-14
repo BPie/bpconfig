@@ -334,19 +334,23 @@ class TestCellContainer(unittest.TestCase):
         self.assertEqual(cc['*p1'], p1)
         self.assertEqual(cc['*p2'], p2)
 
+
     def test_derivative_class_with_creator_class(self):
 
         class SomeClass(fp.CellContainer):
 
+            def __init__(self, name):
+                fp.CellContainer.__init__(self, name)
+
             def _create_a_prop(self):
-                return PropertyBool('a', true)
+                return fp.PropertyBool('a', True)
 
             def _create_b_prop(self):
-                return PropertyBool('b', false)
+                return fp.PropertyBool('b', False)
 
         instance = SomeClass('some name')
-        self.assertTrue(instance.a)
-        self.assertFalse(instance.b)
+        self.assertEqual(instance.a, 'True')
+        self.assertEqual(instance.b, 'False')
 
 
     def test_derivative_class_with_property(self):
@@ -575,8 +579,8 @@ class TestProperty(unittest.TestCase):
     def test_not_execitable(self):
         not_executable_cell = self.TYPE(self.name, self.DEFAULT_VALUE)
         try:
-            self.assertEqual(not_executable_cell.executable, False)
             not_executable_cell()
+            self.assertEqual(not_readable_cell.executable, False)
         except fp.NotExecutableException as e:
             pass
         except Exception as e:
