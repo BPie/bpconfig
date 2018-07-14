@@ -119,10 +119,10 @@ class CellContainer(Cell):
 
         self._cells = []
         if cells is None:
-            cells = self._create_cells()
-
+            cells = []
         elif not isinstance(cells, Iterable):
             cells = [cells]
+        cells.extend(self._create_cells())
 
         # separate append so as to check correctness of cells
         for cell in cells:
@@ -134,7 +134,7 @@ class CellContainer(Cell):
     def _get_creators(self):
         methods = [name
                 for (name, method)
-                in inspect.getmembers(self.__class__, predicate=inspect.ismethod)]
+                in inspect.getmembers(self.__class__, predicate=inspect.isfunction)]
 
         matches = [self.PATTERN.match(method) for method in methods]
         return [(match.group(), match.group(1)) for match in matches if match]
