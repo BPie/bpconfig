@@ -119,10 +119,11 @@ class CellContainer(Cell):
 
         self._cells = []
         if cells is None:
-            cells = []
+            # if cells were not given- tries to create from methods
+            # that match PATTERN
+            cells = self._create_cells()
         elif not isinstance(cells, Iterable):
             cells = [cells]
-        cells.extend(self._create_cells())
 
         # separate append so as to check correctness of cells
         for cell in cells:
